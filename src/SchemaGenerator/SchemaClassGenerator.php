@@ -9,6 +9,7 @@ use GraphQL\SchemaGenerator\CodeGenerator\EnumObjectBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\InputObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ObjectBuilderInterface;
 use GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\ResultObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\UnionObjectBuilder;
 use GraphQL\SchemaObject\QueryObject;
 use GraphQL\Util\StringLiteralFormatter;
@@ -168,7 +169,30 @@ class SchemaClassGenerator
         $this->appendQueryObjectFields($objectBuilder, $objectName, $objectArray['fields']);
         $objectBuilder->build();
 
+        $resultObjectBuilder = new ResultObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace);
+        // You'll create this new method, modeled after appendQueryObjectFields
+        $this->appendResultObjectFields($resultObjectBuilder, $objectArray['fields']);
+        $resultObjectBuilder->build();
+
         return true;
+    }
+
+    private function appendResultObjectFields(ResultObjectClassBuilder $resultObjectBuilder, array $fieldsArray)
+    {
+        foreach ($fieldsArray as $fieldArray) {
+            $name = $fieldArray['name'];
+            if ($name === 'query') continue; // Skip self-referential 'query' field
+
+            [$typeName, $typeKind, $typeKindWrappers] = $this->getTypeInfo($fieldArray);
+
+            // Generate nested objects first, just like the query builder does
+            if ($typeKind !== FieldTypeKindEnum::SCALAR && $typeKind !== FieldTypeKindEnum::ENUM_OBJECT) {
+                $this->generateObject($typeName, $typeKind);
+            }
+
+            // Add the field (property + getter) to the result class
+            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers);
+        }
     }
 
     /**
