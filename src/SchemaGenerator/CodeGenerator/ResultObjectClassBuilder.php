@@ -151,10 +151,76 @@ public function get" . $upperCamelField . "()
         return implode(PHP_EOL, $lines);
     }
 
+    private function generateJsonHydrationMethod(): string
+    {
+        $lines = [
+            "    /**",
+            "     * @param string \$json",
+            "     * @return self",
+            "     */",
+            "    public static function fromJson(string \$json): self",
+            "    {",
+            "        \$data = json_decode(\$json, true);",
+            "        if (\$data === null && json_last_error() !== JSON_ERROR_NONE) {",
+            "            throw new \InvalidArgumentException('Invalid JSON provided to fromJson method: ' . json_last_error_msg());",
+            "        }",
+            "        return self::fromArray(\$data);",
+            "    }",
+        ];
+
+        return implode(PHP_EOL, $lines);
+    }
+
+    private function generateAsArrayMethod(): string
+    {
+        $lines = [
+            "    /**",
+            "     * Converts this object to an array.",
+            "     * @return array",
+            "     */",
+            "    public function asArray(): array", // <-- Renamed
+            "    {",
+            "        \$data = [];",
+        ];
+
+        foreach ($this->fields as $fieldName => $info) {
+            $lines[] = "        if (\$this->$fieldName !== null) {";
+
+            if ($info['isCarbon']) {
+                if ($info['isList']) {
+                    $lines[] = "            \$data['$fieldName'] = array_map(function(\$item) { return \$item->toIso8601String(); }, \$this->$fieldName);";
+                } else {
+                    $lines[] = "            \$data['$fieldName'] = \$this->$fieldName" . "->toIso8601String();";
+                }
+            }
+            else if ($info['isObject']) {
+                if ($info['isList']) {
+                    // Recursively call asArray()
+                    $lines[] = "            \$data['$fieldName'] = array_map(function(\$item) { return \$item->asArray(); }, \$this->$fieldName);";
+                } else {
+                    // Recursively call asArray()
+                    $lines[] = "            \$data['$fieldName'] = \$this->$fieldName" . "->asArray();";
+                }
+            }
+            else {
+                // Scalars and Enums
+                $lines[] = "            \$data['$fieldName'] = \$this->$fieldName;";
+            }
+            $lines[] = "        }";
+        }
+
+        $lines[] = "        return \$data;";
+        $lines[] = "    }";
+
+        return implode(PHP_EOL, $lines);
+    }
+
     // You must call this *after* all fields are added
     public function build(): void
     {
         $this->classFile->addMethod($this->generateHydrationMethod());
+        $this->classFile->addMethod($this->generateJsonHydrationMethod());
+        $this->classFile->addMethod($this->generateAsArrayMethod());
         $this->classFile->writeFile();
     }
 }
