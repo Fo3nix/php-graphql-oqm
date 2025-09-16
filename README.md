@@ -21,7 +21,7 @@ This fork adds Result Object functionality that allows you to:
 
 Run the following command to install the package using composer:
 ```
-composer require YOUR_PACKAGE_NAME/php-graphql-oqm
+composer require fo3nix/php-graphql-oqm
 ```
 
 ## Generating The Schema Objects
