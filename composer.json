@@ -1,6 +1,6 @@
 {
-    "name": "gmostafa/php-graphql-oqm",
-    "description": "GraphQL Object-to-Query Mapper (QOM) which generates objects from API schema",
+    "name": "fo3nix/php-graphql-oqm",
+    "description": "GraphQL Object-to-Query Mapper (OQM) which generates objects AND typed data models from an API schema.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -17,13 +17,12 @@
     ],
     "authors": [
         {
-            "name": "Mostafa Ghoneimy",
-            "email": "emostafagh@gmail.com"
+            "name": "Fo3nix",
+            "email": "finn.dev@ofeastwood.com"
         }
     ],
     "autoload": {
         "psr-4": {
-            "Shopify\\": "test123/",
             "GraphQL\\": "src/",
             "GraphQL\\SchemaObject\\": "schema_object/"
         }
