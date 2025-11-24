@@ -23,9 +23,9 @@ class EnumObjectBuilder implements ObjectBuilderInterface
      * @param string $objectName
      * @param string $namespace
      */
-    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE)
+    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $className = $objectName . 'EnumObject';
+        $className = $classPrefix . $objectName . 'EnumObject';
 
         $this->classFile = new ClassFile($writeDir, $className);
         $this->classFile->setNamespace($namespace);

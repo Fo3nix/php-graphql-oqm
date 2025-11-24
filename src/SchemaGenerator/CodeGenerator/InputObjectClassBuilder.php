@@ -12,6 +12,9 @@ use GraphQL\Util\StringLiteralFormatter;
  */
 class InputObjectClassBuilder extends ObjectClassBuilder
 {
+
+    private $classPrefix = '';
+
     /**
      * SchemaObjectBuilder constructor.
      *
@@ -19,9 +22,10 @@ class InputObjectClassBuilder extends ObjectClassBuilder
      * @param string $objectName
      * @param string $namespace
      */
-    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE)
+    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $className = $objectName . 'InputObject';
+        $className = $classPrefix . $objectName . 'InputObject';
+        $this->classPrefix = $classPrefix;
 
         $this->classFile = new ClassFile($writeDir, $className);
         $this->classFile->setNamespace($namespace);
@@ -59,6 +63,8 @@ class InputObjectClassBuilder extends ObjectClassBuilder
     public function addInputObjectValue(string $argumentName, string $typeName)
     {
         $typeName .= 'InputObject';
+        $typeName = $this->classPrefix . $typeName;
+
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
         $this->addObjectSetter($argumentName, $upperCamelCaseArg, $typeName);

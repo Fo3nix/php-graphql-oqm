@@ -10,12 +10,14 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
 {
     private $generationNamespace;
     private $fields = []; // Stores field info for the hydrator
+    private $classPrefix = '';
 
-    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE)
+    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $this->classFile = new ClassFile($writeDir, $objectName);
+        $this->classFile = new ClassFile($writeDir, $classPrefix.$objectName);
         $this->classFile->setNamespace($namespace);
         $this->generationNamespace = $namespace;
+        $this->classPrefix = $classPrefix;
     }
 
     /**
@@ -46,10 +48,10 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
 
             case FieldTypeKindEnum::OBJECT:
             case FieldTypeKindEnum::UNION_OBJECT:
-                return $typeName; // e.g., "Pokemon"
+                return $this->classPrefix . $typeName; // e.g., "Pokemon"
 
             case FieldTypeKindEnum::ENUM_OBJECT:
-                return $typeName . 'EnumObject';
+                return $this->classPrefix . $typeName . 'EnumObject';
 
             default:
                 return 'mixed';

@@ -17,6 +17,8 @@ class UnionObjectBuilder implements ObjectBuilderInterface
      */
     protected $classFile;
 
+    private $classPrefix = '';
+
     /**
      * EnumObjectBuilder constructor.
      *
@@ -24,9 +26,10 @@ class UnionObjectBuilder implements ObjectBuilderInterface
      * @param string $objectName
      * @param string $namespace
      */
-    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE)
+    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $className = $objectName . 'UnionObject';
+        $className = $classPrefix . $objectName . 'UnionObject';
+        $this->classPrefix = $classPrefix;
 
         $this->classFile = new ClassFile($writeDir, $className);
         $this->classFile->setNamespace($namespace);
@@ -41,6 +44,7 @@ class UnionObjectBuilder implements ObjectBuilderInterface
      */
     public function addPossibleType(string $typeName)
     {
+        $typeName = $this->classPrefix . $typeName;
         $upperCamelCaseTypeName = StringLiteralFormatter::formatUpperCamelCase($typeName);
         $objectClassName = $typeName . 'QueryObject';
         $method = "public function on$upperCamelCaseTypeName()

@@ -14,6 +14,10 @@ use GraphQL\Util\StringLiteralFormatter;
  */
 class QueryObjectClassBuilder extends ObjectClassBuilder
 {
+
+    private $classPrefix = '';
+
+
     /**
      * QueryObjectClassBuilder constructor.
      *
@@ -21,9 +25,11 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      * @param string $objectName
      * @param string $namespace
      */
-    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE)
+    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $className = $objectName . 'QueryObject';
+        $className = $classPrefix . $objectName . 'QueryObject';
+
+        $this->classPrefix = $classPrefix;
 
         $this->classFile = new ClassFile($writeDir, $className);
         $this->classFile->setNamespace($namespace);
@@ -90,8 +96,8 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      */
     protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason)
     {
-        $objectClass = $fieldTypeName . ($fieldTypeKind === FieldTypeKindEnum::UNION_OBJECT ? 'UnionObject' : 'QueryObject');
-        $method = "public function select$upperCamelName($argsObjectName \$argsObject = null)
+        $objectClass = $this->classPrefix . $fieldTypeName . ($fieldTypeKind === FieldTypeKindEnum::UNION_OBJECT ? 'UnionObject' : 'QueryObject');
+        $method = "public function select$upperCamelName({$this->classPrefix}$argsObjectName \$argsObject = null)
 {
     \$object = new $objectClass(\"$fieldName\");
     if (\$argsObject !== null) {

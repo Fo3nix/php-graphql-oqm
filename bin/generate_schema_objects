@@ -14,7 +14,8 @@ function readConfig()
         'h:',
         'v:',
         'd:',
-        'n:'
+        'n:',
+        'p:'
     ]);
 
     $longOptions = [
@@ -23,6 +24,7 @@ function readConfig()
         'authorization-header-value:',
         'directory:',
         'namespace:',
+        'prefix:'
     ];
 
     $options = getopt($shortOptions, $longOptions);
@@ -32,6 +34,7 @@ function readConfig()
     $authHeaderName = $options['authorization-header-name'] ?? $options['h'] ?? readline('Authorization header name: ');
     $authHeaderValue = $options['authorization-header-value'] ?? $options['v'] ?? readline('Authorization header value: ');
     $namespace = $options['n'] ?? $options['namespace'] ?? trim(readline('Custom namespace (optional): '));
+    $prefix = $options['p'] ?? $options['prefix'] ?? trim(readline('Custom class prefix (optional): ')) ?: '';
 
     $authHeaders = [];
 
@@ -39,7 +42,7 @@ function readConfig()
         $authHeaders = [$authHeaderName => $authHeaderValue];
     }
 
-    return [$url, empty($customWriteDir) ? "" : $customWriteDir, $authHeaders, empty($namespace) ? ObjectBuilderInterface::DEFAULT_NAMESPACE : $namespace];
+    return [$url, empty($customWriteDir) ? "" : $customWriteDir, $authHeaders, empty($namespace) ? ObjectBuilderInterface::DEFAULT_NAMESPACE : $namespace, $prefix];
 }
 
 // Require autoload.php depending on environment
@@ -55,10 +58,10 @@ if (!$autoLoadFound) {
 	throw new RuntimeException('Could not find vendor/autoload.php');
 }
 
-[$endpointUrl, $customWriteDir, $authHeaders, $namespace] = readConfig();
+[$endpointUrl, $customWriteDir, $authHeaders, $namespace, $prefix] = readConfig();
 
 $client  = new Client($endpointUrl, $authHeaders);
-$scanner = new SchemaClassGenerator($client, $customWriteDir, $namespace);
+$scanner = new SchemaClassGenerator($client, $customWriteDir, $namespace, $prefix);
 
 print "-------------------------------------------\n";
 print "Generating schema objects from schema types\n";

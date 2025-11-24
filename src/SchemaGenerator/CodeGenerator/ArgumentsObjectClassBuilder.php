@@ -12,6 +12,9 @@ use GraphQL\Util\StringLiteralFormatter;
  */
 class ArgumentsObjectClassBuilder extends ObjectClassBuilder
 {
+
+    private $classPrefix = '';
+
     /**
      * ArgumentsObjectClassBuilder constructor.
      *
@@ -19,9 +22,11 @@ class ArgumentsObjectClassBuilder extends ObjectClassBuilder
      * @param string $objectName
      * @param string $namespace
      */
-    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE)
+    public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $this->classFile = new ClassFile($writeDir, $objectName);
+        $this->classFile = new ClassFile($writeDir, $classPrefix . $objectName);
+        $this->classPrefix = $classPrefix;
+
         $this->classFile->setNamespace($namespace);
         if ($namespace !== self::DEFAULT_NAMESPACE) {
             $this->classFile->addImport('GraphQL\\SchemaObject\\ArgumentsObject');
@@ -58,7 +63,7 @@ class ArgumentsObjectClassBuilder extends ObjectClassBuilder
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $typeName);
+        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName);
     }
 
     /**
@@ -70,7 +75,7 @@ class ArgumentsObjectClassBuilder extends ObjectClassBuilder
         $typeName .= 'InputObject';
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addObjectSetter($argumentName, $upperCamelCaseArg, $typeName);
+        $this->addObjectSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName);
     }
 
     /**
