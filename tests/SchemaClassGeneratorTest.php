@@ -906,7 +906,7 @@ class TransparentSchemaClassGenerator extends SchemaClassGenerator
         string $writeDir = ''
     )
     {
-        parent::__construct($client, $writeDir, 'GraphQL\\Tests\\SchemaObject');
+        parent::__construct($client, $writeDir, 'GraphQL\\Tests\\SchemaObject', '', false);
     }
 
     public function generateRootQueryObject(): bool

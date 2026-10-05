@@ -58,10 +58,12 @@ class SchemaClassGenerator
      * @param Client $client
      * @param string $writeDir
      * @param string $namespace
+     * @param string $classPrefix
+     * @param bool   $prefetch
      */
-	public function __construct(Client $client, string $writeDir = '', string $namespace = ObjectBuilderInterface::DEFAULT_NAMESPACE, string $classPrefix = '')
+	public function __construct(Client $client, string $writeDir = '', string $namespace = ObjectBuilderInterface::DEFAULT_NAMESPACE, string $classPrefix = '', bool $prefetch = true)
     {
-        $this->schemaInspector     = new SchemaInspector($client);
+        $this->schemaInspector     = new SchemaInspector($client, $prefetch);
         $this->generatedObjects    = [];
         $this->writeDir            = $writeDir;
         $this->generationNamespace = $namespace;
