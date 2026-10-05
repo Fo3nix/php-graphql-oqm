@@ -71,6 +71,25 @@ class QueryObjectClassBuilderTest extends CodeFileTestCase
     }
 
     /**
+     * @covers \GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder::addScalarField
+     * @covers \GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder::addSimpleSelector
+     * @covers \GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder::buildSelectorMethodName
+     */
+    public function testAddSimpleSelectorCollidingWithBaseClassMethodName()
+    {
+        $objectName = 'FieldCollision';
+        $classBuilder = new QueryObjectClassBuilder(static::getGeneratedFilesDir(), $objectName, static::TESTING_NAMESPACE);
+        $objectName .= 'QueryObject';
+        $classBuilder->addScalarField('field', false, null);
+        $classBuilder->build();
+
+        $this->assertFileEquals(
+            static::getExpectedFilesDir() . "/$objectName.php",
+            static::getGeneratedFilesDir() . "/$objectName.php"
+        );
+    }
+
+    /**
      * @depends testAddSimpleSelector
      *
      * @covers \GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder::addScalarField

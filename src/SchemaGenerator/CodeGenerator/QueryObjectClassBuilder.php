@@ -15,6 +15,15 @@ use GraphQL\Util\StringLiteralFormatter;
 class QueryObjectClassBuilder extends ObjectClassBuilder
 {
 
+    private const BASE_CLASS_METHODS = [
+        '__construct',
+        'setAlias',
+        'getQuery',
+        'selectField',
+        'setArgument',
+        'setVariable',
+    ];
+
     private $classPrefix = '';
 
 
@@ -76,7 +85,8 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      */
     protected function addSimpleSelector(string $propertyName, string $upperCamelName, bool $isDeprecated, ?string $deprecationReason)
     {
-        $method = "public function select$upperCamelName()
+        $methodName = $this->buildSelectorMethodName($upperCamelName);
+        $method = "public function $methodName()
 {
     \$this->selectField(\"$propertyName\");
 
@@ -97,7 +107,8 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
     protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason)
     {
         $objectClass = $this->classPrefix . $fieldTypeName . ($fieldTypeKind === FieldTypeKindEnum::UNION_OBJECT ? 'UnionObject' : 'QueryObject');
-        $method = "public function select$upperCamelName({$this->classPrefix}$argsObjectName \$argsObject = null)
+        $methodName = $this->buildSelectorMethodName($upperCamelName);
+        $method = "public function $methodName({$this->classPrefix}$argsObjectName \$argsObject = null)
 {
     \$object = new $objectClass(\"$fieldName\");
     if (\$argsObject !== null) {
@@ -108,6 +119,18 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
     return \$object;
 }";
         $this->classFile->addMethod($method, $isDeprecated, $deprecationReason);
+    }
+
+    private function buildSelectorMethodName(string $upperCamelName): string
+    {
+        $methodName = "select$upperCamelName";
+        foreach (self::BASE_CLASS_METHODS as $baseClassMethod) {
+            if (strcasecmp($methodName, $baseClassMethod) === 0) {
+                return $methodName . '_';
+            }
+        }
+
+        return $methodName;
     }
 
     /**

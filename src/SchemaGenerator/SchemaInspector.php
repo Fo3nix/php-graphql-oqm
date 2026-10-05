@@ -13,35 +13,22 @@ use GraphQL\Client;
  */
 class SchemaInspector
 {
-    private const TYPE_SUB_QUERY = <<<QUERY
-type{
-  name
-  kind
-  description
-  ofType{
-    name
-    kind
-    ofType{
-      name
-      kind
-      ofType{
-        name
-        kind
-        ofType{
-          name
-          kind
-        }
-      }
-    }
-  }
-}
-QUERY;
-
+    private const TYPE_SUB_QUERY_DEPTH = 8;
 
     /**
      * @var Client
      */
     protected $client;
+
+    private static function buildTypeSubQuery(int $depth = self::TYPE_SUB_QUERY_DEPTH): string
+    {
+        $subQuery = "name\nkind";
+        for ($i = 1; $i < $depth; $i++) {
+            $subQuery = "name\nkind\nofType{\n$subQuery\n}";
+        }
+
+        return "type{\nname\nkind\ndescription\nofType{\n$subQuery\n}\n}";
+    }
 
     /**
      * SchemaInspector constructor.
@@ -69,12 +56,12 @@ QUERY;
         description
         isDeprecated
         deprecationReason
-        " . static::TYPE_SUB_QUERY . "
+        " . static::buildTypeSubQuery() . "
         args{
           name
           description
           defaultValue
-          " . static::TYPE_SUB_QUERY . "
+          " . static::buildTypeSubQuery() . "
         }
       }
     }
@@ -101,12 +88,12 @@ QUERY;
       description
       isDeprecated
       deprecationReason
-      " . static::TYPE_SUB_QUERY . "
+      " . static::buildTypeSubQuery() . "
       args{
         name
         description
         defaultValue
-        " . static::TYPE_SUB_QUERY . "
+        " . static::buildTypeSubQuery() . "
       }
     }
   }
@@ -131,7 +118,7 @@ QUERY;
       name
       description
       defaultValue
-      " . static::TYPE_SUB_QUERY . "
+      " . static::buildTypeSubQuery() . "
     }
   }
 }";
