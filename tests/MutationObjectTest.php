@@ -62,6 +62,24 @@ name
     }
 
     /**
+     * @covers \GraphQL\SchemaObject\QueryObject::setOperationName
+     */
+    public function testNamedMutation()
+    {
+        $object = new SimpleRootMutationObject();
+        $object->setOperationName('CreateThing')->selectCreateThing()->selectId();
+
+        $this->assertEquals(
+            'mutation CreateThing {
+createThing {
+id
+}
+}',
+            (string) $object->getMutation()
+        );
+    }
+
+    /**
      * @covers \GraphQL\SchemaObject\MutationObject::getMutation
      */
     public function testMultipleMutationFields()

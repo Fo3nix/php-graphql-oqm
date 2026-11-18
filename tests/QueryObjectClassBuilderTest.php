@@ -81,6 +81,7 @@ class QueryObjectClassBuilderTest extends CodeFileTestCase
         $classBuilder = new QueryObjectClassBuilder(static::getGeneratedFilesDir(), $objectName, static::TESTING_NAMESPACE);
         $objectName .= 'QueryObject';
         $classBuilder->addScalarField('field', false, null);
+        $classBuilder->addScalarField('typename', false, null);
         $classBuilder->build();
 
         $this->assertFileEquals(

@@ -32,6 +32,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
         'selectField',
         'setArgument',
         'setVariable',
+        'selectTypename',
     ];
 
     protected $classPrefix = '';

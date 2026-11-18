@@ -29,6 +29,11 @@ abstract class QueryObject extends AbstractQueryBuilder
     protected const OBJECT_NAME = '';
 
     /**
+     * @var bool
+     */
+    private $typenameSelected = false;
+
+    /**
      * SchemaObject constructor.
      *
      * @param string $fieldName
@@ -40,6 +45,36 @@ abstract class QueryObject extends AbstractQueryBuilder
         $objectName = static::OBJECT_NAME === 'query' ? '' : static::OBJECT_NAME;
         $queryObject = !empty($fieldName) ? $fieldName : $objectName;
         parent::__construct($queryObject);
+    }
+
+    /**
+     * Selects the __typename meta field, the name of the object's type. Selecting it more than once has no effect.
+     *
+     * @return $this
+     */
+    public function selectTypename(): static
+    {
+        if (!$this->typenameSelected) {
+            $this->typenameSelected = true;
+            $this->selectField('__typename');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Names the operation, e.g. "query GetProducts { ... }", which helps logging and debugging on the server. Only has
+     * an effect on the root query or mutation object.
+     *
+     * @param string $operationName
+     *
+     * @return $this
+     */
+    public function setOperationName(string $operationName): static
+    {
+        $this->query->setOperationName($operationName);
+
+        return $this;
     }
 
     /**

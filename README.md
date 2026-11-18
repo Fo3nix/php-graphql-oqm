@@ -291,6 +291,16 @@ same object) the best way to do it is to structure the query like a tree, where 
 reference to the object being branch off from. In this case, charmander is the root and evolutions and evolution
 requirements are 2 sub-trees branched off it.
 
+### Operation Names and __typename
+
+Name an operation with `setOperationName()` on the root object, and select the `__typename` meta field of any object
+with `selectTypename()`:
+```php
+$rootObject = (new RootQueryObject())->setOperationName('GetProduct');
+$rootObject->selectProduct()->selectTypename()->selectTitle();
+// query GetProduct { product { __typename title } }
+```
+
 ### Improving Query Objects Readability
 
 A couple of hints on how to keep your query objects more readable:

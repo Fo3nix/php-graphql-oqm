@@ -141,6 +141,53 @@ scalar
             (string) $this->queryObject->getQuery()
         );
     }
+
+    /**
+     * @covers \GraphQL\SchemaObject\QueryObject::selectTypename
+     */
+    public function testSelectTypenameOnce()
+    {
+        $this->queryObject->selectTypename()->selectScalar()->selectTypename();
+        $this->assertEquals(
+            'query {
+simples {
+__typename
+scalar
+}
+}',
+            (string) $this->queryObject->getQuery()
+        );
+    }
+
+    /**
+     * @covers \GraphQL\SchemaObject\QueryObject::setOperationName
+     */
+    public function testOperationName()
+    {
+        $root = new SimpleRootQueryObject();
+        $root->setOperationName('GetSimples')->selectSimples()->selectScalar();
+        $this->assertEquals(
+            'query GetSimples {
+simples {
+scalar
+}
+}',
+            (string) $root->getQuery()
+        );
+    }
+}
+
+class SimpleRootQueryObject extends QueryObject
+{
+    const OBJECT_NAME = '';
+
+    public function selectSimples()
+    {
+        $object = new SimpleQueryObject('simples');
+        $this->selectField($object);
+
+        return $object;
+    }
 }
 
 class SimpleQueryObject extends QueryObject

@@ -14,4 +14,11 @@ class FieldCollisionQueryObject extends QueryObject
 
         return $this;
     }
+
+    public function selectTypename_()
+    {
+        $this->selectField("typename");
+
+        return $this;
+    }
 }
