@@ -8,7 +8,7 @@ class RootQueryObject extends QueryObject
 {
     const OBJECT_NAME = "";
 
-    public function selectNode(RootNodeArgumentsObject $argsObject = null)
+    public function selectNode(?RootNodeArgumentsObject $argsObject = null)
     {
         $object = new NodeInterfaceObject("node");
         if ($argsObject !== null) {

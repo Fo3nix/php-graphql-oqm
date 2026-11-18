@@ -59,6 +59,38 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
     }
 
     /**
+     * Maps a non-list GraphQL type to a native PHP return type. Every type is nullable because fields that were not
+     * selected in the query are null. Custom scalars can be serialized as anything (e.g. a JSON scalar), so they are
+     * not narrowed.
+     *
+     * @param string $typeName
+     * @param string $typeKind
+     * @param string $docType The PHPDoc type of the field
+     *
+     * @return string
+     */
+    private function mapGraphQLToNativeType(string $typeName, string $typeKind, string $docType): string
+    {
+        switch ($typeKind) {
+            case FieldTypeKindEnum::OBJECT:
+            case FieldTypeKindEnum::INTERFACE_OBJECT:
+                return '?' . $docType;
+            case FieldTypeKindEnum::ENUM_OBJECT:
+                // Enum values are hydrated as their string value
+                return '?string';
+            case FieldTypeKindEnum::SCALAR:
+                if ($docType === 'Carbon') {
+                    return '?Carbon';
+                }
+                $scalarTypes = ['String' => '?string', 'ID' => '?string', 'Int' => '?int', 'Float' => '?float', 'Boolean' => '?bool'];
+
+                return $scalarTypes[$typeName] ?? 'mixed';
+            default:
+                return 'mixed';
+        }
+    }
+
+    /**
      * Declares that this result class implements the PHP interface generated for a GraphQL interface
      *
      * @param string $interfaceName
@@ -102,9 +134,20 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
                 $docReturnType = (count($possibleTypes) > 1 ? "($docType)" : $docType) . '[]';
             }
 
+            if ($isList) {
+                $nativeType = '?array';
+            } elseif (empty($possibleTypes)) {
+                $nativeType = 'mixed';
+            } elseif (count($possibleTypes) === 1) {
+                $nativeType = '?' . $docType;
+            } else {
+                $nativeType = $docType . '|null';
+            }
+
             return [
                 'type' => $docType,
                 'docType' => $docReturnType,
+                'nativeType' => $nativeType,
                 'isList' => $isList,
                 'isObject' => true,
                 'isCarbon' => false,
@@ -129,6 +172,7 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
         return [
             'type' => $docType,
             'docType' => $docType . ($isList ? '[]' : ''),
+            'nativeType' => $isList ? '?array' : $this->mapGraphQLToNativeType($typeName, $typeKind, $docType),
             'isList' => $isList,
             'isObject' => $isObject,
             'isCarbon' => $isCarbon,
@@ -153,24 +197,25 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
         $info = $this->resolveField($fieldName, $typeName, $typeKind, $typeWrappers, $possibleTypes);
         $this->fields[$fieldName] = $info;
 
-        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType']));
+        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], $info['nativeType']));
     }
 
     /**
      * @param string $fieldName
      * @param string $docReturnType
+     * @param string $nativeReturnType
      * @param bool   $withBody False to only declare the getter, as an interface does
      *
      * @return string
      */
-    protected function generateGetter(string $fieldName, string $docReturnType, bool $withBody = true): string
+    protected function generateGetter(string $fieldName, string $docReturnType, string $nativeReturnType, bool $withBody = true): string
     {
         $upperCamelField = StringLiteralFormatter::formatUpperCamelCase($fieldName);
         $method = "
 /**
  * @return " . $docReturnType . "
  */
-public function get" . $upperCamelField . "()";
+public function get" . $upperCamelField . "(): " . $nativeReturnType;
 
         if (!$withBody) {
             return $method . ';';

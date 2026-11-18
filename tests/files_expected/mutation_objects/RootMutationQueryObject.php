@@ -8,7 +8,7 @@ class RootMutationQueryObject extends MutationObject
 {
     const OBJECT_NAME = "";
 
-    public function selectCreateThing(RootMutationCreateThingArgumentsObject $argsObject = null)
+    public function selectCreateThing(?RootMutationCreateThingArgumentsObject $argsObject = null)
     {
         $object = new CreateThingPayloadQueryObject("createThing");
         if ($argsObject !== null) {

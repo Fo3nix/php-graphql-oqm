@@ -22,6 +22,8 @@ selector API as queries.
 
 ## Installation
 
+The package requires PHP 8.3 or newer, and so does the generated code.
+
 Run the following command to install the package using composer:
 ```
 composer require fo3nix/php-graphql-oqm
@@ -367,7 +369,10 @@ according to the following rules:
 
 For every object in the schema, a corresponding Result Object class will be generated with:
 - Properties for each field in the object
-- Getter methods for each property with proper type hints
+- Getter methods for each property with native return types. Every getter is nullable, because fields that were not
+  selected in the query are `null`. Lists return `?array` (the element type is in the PHPDoc), enum values `?string`,
+  union fields a native union such as `Product|Article|null`, and custom scalars other than date/times `mixed`, since
+  they can be serialized as anything
 - `fromArray()` method to hydrate the object from an array
 - `fromJson()` method to hydrate the object from a JSON string
 - `asArray()` method to convert the object back to an array

@@ -110,7 +110,7 @@ class SimpleInterfaceRootQueryObject extends \GraphQL\SchemaObject\QueryObject
 {
     const OBJECT_NAME = '';
 
-    public function selectNode(SimpleRootNodeArgumentsObject $argsObject = null)
+    public function selectNode(?SimpleRootNodeArgumentsObject $argsObject = null)
     {
         $object = new SimpleNodeInterfaceObject('node');
         if ($argsObject !== null) {

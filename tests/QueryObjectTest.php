@@ -161,7 +161,7 @@ class SimpleQueryObject extends QueryObject
         return $this;
     }
 
-    public function selectSiblings(SimpleSiblingsArgumentObject $argumentObject = null)
+    public function selectSiblings(?SimpleSiblingsArgumentObject $argumentObject = null)
     {
         $object = new SimpleQueryObject('siblings');
         if ($argumentObject !== null) {

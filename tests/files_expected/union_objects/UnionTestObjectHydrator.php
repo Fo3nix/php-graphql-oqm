@@ -10,7 +10,7 @@ class UnionTestObjectHydrator
      * @param array $data
      * @return UnionObject1|UnionObject2
      */
-    public static function fromArray(array $data)
+    public static function fromArray(array $data): UnionObject1|UnionObject2
     {
         if (!isset($data['__typename'])) {
             throw new \InvalidArgumentException('Cannot hydrate UnionTestObject: the data has no __typename, select it in the query');
@@ -31,7 +31,7 @@ class UnionTestObjectHydrator
      * @param UnionObject1|UnionObject2 $object
      * @return array
      */
-    public static function toArray($object): array
+    public static function toArray(UnionObject1|UnionObject2 $object): array
     {
         if ($object instanceof UnionObject1) {
             return ['__typename' => 'UnionObject1'] + $object->asArray();
