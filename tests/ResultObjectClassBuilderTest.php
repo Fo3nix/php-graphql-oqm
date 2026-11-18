@@ -45,4 +45,28 @@ class ResultObjectClassBuilderTest extends CodeFileTestCase
         $this->assertStringContainsString('public function getPinned(): Product|Article|null', $contents);
         $this->assertStringContainsString('PinnedHydrator::fromArray($data[\'pinned\'])', $contents);
     }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\CodeGenerator\ResultObjectClassBuilder::className
+     */
+    public function testReservedTypeNamesGetAnUnderscore()
+    {
+        $this->assertSame('Return_', ResultObjectClassBuilder::className('', 'Return'));
+        $this->assertSame('List_', ResultObjectClassBuilder::className('', 'List'));
+        $this->assertSame('Product', ResultObjectClassBuilder::className('', 'Product'));
+        $this->assertSame('ShopReturn', ResultObjectClassBuilder::className('Shop', 'Return'));
+
+        // Shopify's Admin API has a "Return" type
+        $builder = new ResultObjectClassBuilder(static::getGeneratedFilesDir(), 'Return', 'GraphQL\\Tests\\SchemaObject');
+        $builder->addField('id', 'ID', FieldTypeKindEnum::SCALAR, []);
+        $builder->build();
+        $edge = new ResultObjectClassBuilder(static::getGeneratedFilesDir(), 'ReturnEdge', 'GraphQL\\Tests\\SchemaObject');
+        $edge->addField('node', 'Return', FieldTypeKindEnum::OBJECT, []);
+        $edge->build();
+
+        $this->assertStringContainsString('class Return_', file_get_contents(static::getGeneratedFilesDir() . '/Return_.php'));
+        $edgeContents = file_get_contents(static::getGeneratedFilesDir() . '/ReturnEdge.php');
+        $this->assertStringContainsString('public function getNode(): ?Return_', $edgeContents);
+        $this->assertStringContainsString('Return_::fromArray($data[\'node\'])', $edgeContents);
+    }
 }

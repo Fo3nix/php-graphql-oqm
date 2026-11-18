@@ -384,7 +384,7 @@ class SchemaClassGenerator
         $objectName    = $objectArray['name'];
         $objectBuilder = new InterfaceObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
         $objectBuilder->setDescription($objectArray['description'] ?? null);
-        $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix, $this->classPrefix . $objectName);
+        $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix, ResultObjectClassBuilder::className($this->classPrefix, $objectName));
         $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'] ?? [], 'name');
 
         $this->appendQueryObjectFields($objectBuilder, $objectName, $objectArray['fields'] ?? []);
