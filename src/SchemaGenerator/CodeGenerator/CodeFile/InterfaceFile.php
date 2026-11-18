@@ -19,4 +19,34 @@ class InterfaceFile extends TraitFile
 interface %3$s
 {%4$s%5$s}
 ';
+
+    /**
+     * The list of interfaces extended by this interface
+     *
+     * @var array
+     */
+    protected $parentInterfaces = [];
+
+    /**
+     * @param string $interfaceName
+     */
+    public function extendsInterface(string $interfaceName)
+    {
+        if (!empty($interfaceName)) {
+            $this->parentInterfaces[$interfaceName] = null;
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function generateClassName(): string
+    {
+        $string = $this->fileName;
+        if (!empty($this->parentInterfaces)) {
+            $string .= ' extends ' . implode(', ', array_keys($this->parentInterfaces));
+        }
+
+        return $string;
+    }
 }

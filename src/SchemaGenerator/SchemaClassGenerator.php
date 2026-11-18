@@ -383,6 +383,11 @@ class SchemaClassGenerator
 
         // The PHP interface implemented by the result classes of the possible types
         $resultInterfaceBuilder = new ResultInterfaceBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        foreach ($objectArray['interfaces'] ?? [] as $interfaceArray) {
+            if ($this->generateObject($interfaceArray['name'], FieldTypeKindEnum::INTERFACE_OBJECT)) {
+                $resultInterfaceBuilder->addInterface($interfaceArray['name']);
+            }
+        }
         $this->appendResultObjectFields($resultInterfaceBuilder, $objectArray['fields'] ?? []);
         $resultInterfaceBuilder->build();
 

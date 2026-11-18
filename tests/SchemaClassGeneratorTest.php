@@ -1166,6 +1166,41 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
         );
     }
 
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateInterfaceObject
+     */
+    public function testInterfaceImplementingInterfaceExtendsIt()
+    {
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Entity',
+                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                    'fields' => [],
+                    'possibleTypes' => [],
+                    'interfaces' => [['name' => 'Resource']],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Resource',
+                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                    'fields' => [],
+                    'possibleTypes' => [],
+                    'interfaces' => [],
+                ]
+            ]
+        ])));
+
+        $this->classGenerator->generateInterfaceObject('Entity');
+        $this->assertSame(0, $this->mockHandler->count());
+
+        $this->assertStringContainsString('interface Entity extends Resource', file_get_contents(static::getGeneratedFilesDir() . "/Entity.php"));
+        $this->assertStringContainsString('interface Resource' . PHP_EOL, file_get_contents(static::getGeneratedFilesDir() . "/Resource.php"));
+    }
+
     ///**
     // * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateObject
     // */

@@ -165,6 +165,7 @@ class SchemaInspectorTest extends TestCase
         $body = json_decode((string) $mockHandler->getLastRequest()->getBody(), true);
         $this->assertStringContainsString('fields(includeDeprecated: true)', $body['query']);
         $this->assertStringContainsString('possibleTypes', $body['query']);
+        $this->assertStringContainsString('interfaces', $body['query']);
     }
 
     /**

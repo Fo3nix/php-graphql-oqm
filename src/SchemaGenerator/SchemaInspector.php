@@ -197,6 +197,9 @@ class SchemaInspector
       kind
       name
     }
+    interfaces {
+      name
+    }
   }
 }";
         });

@@ -37,6 +37,16 @@ class ResultInterfaceBuilder extends ResultObjectClassBuilder
         $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], false));
     }
 
+    /**
+     * Declares that this interface extends the PHP interface generated for another GraphQL interface
+     *
+     * @param string $interfaceName
+     */
+    public function addInterface(string $interfaceName)
+    {
+        $this->classFile->extendsInterface($this->classPrefix . $interfaceName);
+    }
+
     public function build(): void
     {
         $this->classFile->addMethod("/**

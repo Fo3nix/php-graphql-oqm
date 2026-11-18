@@ -203,13 +203,15 @@ Benefits of using Result Objects:
 
 Interface and union fields are hydrated into the result class of the type that was actually returned, picked by its
 `__typename` (which the `InterfaceObject` and `UnionObject` always select). Every GraphQL interface also becomes a PHP
-interface that the result classes of its implementations implement:
+interface that the result classes of its implementations implement, and an interface implementing another interface
+extends it:
 ```php
 $shop = Shop::fromArray($results->getData()['shop']);
 $featured = $shop->getFeatured(); // Typed as Node
 if ($featured instanceof Product) {
     echo $featured->getTitle();
 }
+$pinned = $shop->getPinned(); // A union value: Product|Article
 
 // Hydrate an interface or union value directly
 $node = NodeHydrator::fromArray($results->getData()['node']);
@@ -373,8 +375,9 @@ For every object in the schema, a corresponding Result Object class will be gene
 - Recursive handling of nested objects
 - `implements` declarations for the PHP interfaces of the GraphQL interfaces it implements
 
-For every GraphQL interface, a PHP interface with the same name declares the getters of the interface's fields. For
-every interface and union, a `{TYPE_NAME}Hydrator` class is generated with:
+For every GraphQL interface, a PHP interface with the same name declares the getters of the interface's fields, and
+extends the PHP interfaces of the interfaces it implements. For every interface and union, a `{TYPE_NAME}Hydrator` class
+is generated with:
 - `fromArray()` to hydrate the result class matching the `__typename` of the data
 - `toArray()` to convert a hydrated object back to an array, including its `__typename`
 
