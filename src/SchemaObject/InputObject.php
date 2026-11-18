@@ -55,4 +55,63 @@ abstract class InputObject
     {
         return new RawObject((string) $this);
     }
+
+    /**
+     * Sets a field to a variable of the operation, declared with setVariable() on the root object
+     *
+     * @param string      $fieldName    The name of the input field as in the schema
+     * @param string|null $variableName The variable name without the leading "$", defaults to the field name
+     *
+     * @return $this
+     */
+    public function useVariable(string $fieldName, ?string $variableName = null): static
+    {
+        $this->$fieldName = VariableReference::create($this, $fieldName, $variableName);
+
+        return $this;
+    }
+
+    /**
+     * Converts the input to the plain array to send as the value of a variable. Enum values become strings and
+     * nested input objects arrays, unset fields are omitted.
+     *
+     * @return array
+     */
+    public function toArray(): array
+    {
+        $array = [];
+        foreach ($this as $name => $value) {
+            if ($value !== null) {
+                $array[$name] = self::toVariableValue($value);
+            }
+        }
+
+        return $array;
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return mixed
+     */
+    private static function toVariableValue($value)
+    {
+        if ($value instanceof InputObject) {
+            return $value->toArray();
+        }
+        if ($value instanceof VariableReference) {
+            throw new \LogicException("A variable value cannot reference the variable $value");
+        }
+        if ($value instanceof RawObject) {
+            // Enum values are stored as raw objects to write them unquoted in queries
+            return (string) $value;
+        }
+        if (is_array($value)) {
+            return array_map(function ($item) {
+                return self::toVariableValue($item);
+            }, $value);
+        }
+
+        return $value;
+    }
 }

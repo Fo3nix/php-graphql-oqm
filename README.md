@@ -129,6 +129,26 @@ message
 The returned payload can be hydrated with its result object (e.g. `ProductCreatePayload::fromArray(...)`) just like
 query results. Subscriptions are not generated.
 
+### Using Variables
+
+Instead of writing argument values into the query, declare variables on the root object with `setVariable()`,
+reference them with `useVariable()` on an arguments or input object, and send their values with the query. An input
+object's `toArray()` gives the value to send:
+```php
+$rootMutation = (new RootMutationQueryObject())
+    ->setOperationName('CreateProduct')
+    ->setVariable('input', 'ProductInput', true);
+$rootMutation
+    ->selectProductCreate((new RootMutationProductCreateArgumentsObject())->useVariable('input'))
+    ->selectProduct()->selectId();
+
+$input = (new ProductInputInputObject())->setTitle('Hat')->setStatus(ProductStatusEnumObject::ACTIVE);
+$results = $client->runQuery($rootMutation->getMutation(), true, ['input' => $input->toArray()]);
+```
+This sends `mutation CreateProduct($input: ProductInput!) { productCreate(input: $input) { product { id } } }` with
+the variables `{"input": {"title": "Hat", "status": "ACTIVE"}}`. `useVariable('id', 'productId')` references a
+variable with a different name than the argument.
+
 ### Selecting Interface and Union Fields
 
 Fields that return an interface (e.g. `node(id:)` returning `Node`) or a union return an `InterfaceObject` or

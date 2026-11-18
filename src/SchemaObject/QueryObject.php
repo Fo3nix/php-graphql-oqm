@@ -78,6 +78,25 @@ abstract class QueryObject extends AbstractQueryBuilder
     }
 
     /**
+     * Declares a variable of the operation, e.g. setVariable('input', 'ProductInput', true) declares
+     * "$input: ProductInput!". Reference it in arguments with useVariable() on the arguments or input object and send
+     * its value with the variables of Client::runQuery(). Only has an effect on the root query or mutation object.
+     *
+     * @param string $name         The variable name, without the leading "$"
+     * @param string $type         The GraphQL type, e.g. "ID", "[ID!]" or "ProductInput"
+     * @param bool   $isRequired   Whether the type is non-null, appending "!"
+     * @param mixed  $defaultValue
+     *
+     * @return $this
+     */
+    public function setVariable(string $name, string $type, bool $isRequired = false, $defaultValue = null): static
+    {
+        parent::setVariable($name, $type, $isRequired, $defaultValue);
+
+        return $this;
+    }
+
+    /**
      * @param array $arguments
      *
      * @return $this
