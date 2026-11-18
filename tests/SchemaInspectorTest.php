@@ -32,6 +32,7 @@ class SchemaInspectorTest extends TestCase
             substr_count($body['query'], 'ofType'),
             'The type sub query must request at least 6 ofType levels to support the 5 wrappers of [[String!]!]!'
         );
+        $this->assertStringContainsString('interfaces', $body['query'], 'Object types must fetch the interfaces they implement');
     }
 
     /**
@@ -87,6 +88,7 @@ class SchemaInspectorTest extends TestCase
 
         $body = json_decode((string) $mockHandler->getLastRequest()->getBody(), true);
         $this->assertStringContainsString('mutationType', $body['query']);
+        $this->assertStringContainsString('interfaces', $body['query']);
     }
 
     /**
@@ -123,6 +125,47 @@ class SchemaInspectorTest extends TestCase
         $this->assertSame('Mutation', $schemaInspector->getMutationTypeSchema()['name']);
         $this->assertNull($schemaInspector->getMutationTypeSchema());
         $this->assertSame(0, $mockHandler->count());
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getInterfaceObjectSchema
+     */
+    public function testPrefetchedSchemaServesInterfaceType()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler);
+
+        $mockHandler->append($this->createFullSchemaResponse([
+            $this->createType('Root', 'OBJECT'),
+            $this->createType('Node', 'INTERFACE', [
+                'possibleTypes' => [['kind' => 'OBJECT', 'name' => 'Product']],
+            ]),
+        ]));
+
+        $interface = $schemaInspector->getInterfaceObjectSchema('Node');
+        $this->assertSame('Node', $interface['name']);
+        $this->assertSame('Product', $interface['possibleTypes'][0]['name']);
+        $this->assertSame(0, $mockHandler->count());
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getInterfaceObjectSchema
+     */
+    public function testFetchesInterfaceFieldsAndPossibleTypesWhenPrefetchIsDisabled()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler, false);
+
+        $mockHandler->append($this->createTypeResponse($this->createType('Node', 'INTERFACE', [
+            'possibleTypes' => [['kind' => 'OBJECT', 'name' => 'Product']],
+        ])));
+
+        $this->assertSame('Node', $schemaInspector->getInterfaceObjectSchema('Node')['name']);
+
+        $body = json_decode((string) $mockHandler->getLastRequest()->getBody(), true);
+        $this->assertStringContainsString('fields(includeDeprecated: true)', $body['query']);
+        $this->assertStringContainsString('possibleTypes', $body['query']);
+        $this->assertStringContainsString('interfaces', $body['query']);
     }
 
     /**

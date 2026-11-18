@@ -8,9 +8,9 @@ use GraphQL\Util\StringLiteralFormatter;
 
 class ResultObjectClassBuilder extends ObjectClassBuilder
 {
-    private $generationNamespace;
+    protected $generationNamespace;
     private $fields = []; // Stores field info for the hydrator
-    private $classPrefix = '';
+    protected $classPrefix = '';
 
     public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
@@ -47,7 +47,7 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
                 return 'string'; // Default for ID and other scalars
 
             case FieldTypeKindEnum::OBJECT:
-            case FieldTypeKindEnum::UNION_OBJECT:
+            case FieldTypeKindEnum::INTERFACE_OBJECT:
                 return $this->classPrefix . $typeName; // e.g., "Pokemon"
 
             case FieldTypeKindEnum::ENUM_OBJECT:
@@ -59,17 +59,61 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
     }
 
     /**
-     * Adds a field as a property and a fully type-hinted getter.
+     * Declares that this result class implements the PHP interface generated for a GraphQL interface
+     *
+     * @param string $interfaceName
      */
-    public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers)
+    public function addInterface(string $interfaceName)
     {
-        $this->classFile->addProperty($fieldName);
+        $this->classFile->implementsInterface($this->classPrefix . $interfaceName);
+    }
+
+    /**
+     * Resolves how a field is typed, documented and hydrated, and adds the imports it needs.
+     *
+     * @param string   $fieldName
+     * @param string   $typeName
+     * @param string   $typeKind
+     * @param array    $typeWrappers
+     * @param string[] $possibleTypes Names of the types a union field can hold
+     *
+     * @return array
+     */
+    protected function resolveField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes): array
+    {
+        $isList = in_array(FieldTypeKindEnum::LIST, $typeWrappers);
+        $isObject = in_array($typeKind, [FieldTypeKindEnum::OBJECT, FieldTypeKindEnum::UNION_OBJECT, FieldTypeKindEnum::INTERFACE_OBJECT]);
+
+        // Interfaces and unions are hydrated by a hydrator class that picks the concrete type by __typename
+        $hydrator = null;
+        if ($typeKind === FieldTypeKindEnum::INTERFACE_OBJECT || $typeKind === FieldTypeKindEnum::UNION_OBJECT) {
+            $hydrator = $this->classPrefix . $typeName . 'Hydrator';
+            $this->classFile->addImport($this->generationNamespace . '\\' . $hydrator);
+        }
+
+        if ($typeKind === FieldTypeKindEnum::UNION_OBJECT) {
+            $classPrefix = $this->classPrefix;
+            $docType = empty($possibleTypes) ? 'object' : implode('|', array_map(function ($possibleType) use ($classPrefix) {
+                return $classPrefix . $possibleType;
+            }, $possibleTypes));
+
+            $docReturnType = $docType;
+            if ($isList) {
+                $docReturnType = (count($possibleTypes) > 1 ? "($docType)" : $docType) . '[]';
+            }
+
+            return [
+                'type' => $docType,
+                'docType' => $docReturnType,
+                'isList' => $isList,
+                'isObject' => true,
+                'isCarbon' => false,
+                'hydrator' => $hydrator,
+            ];
+        }
 
         // 1. Get base type (now passes $fieldName)
         $basePhpType = $this->mapGraphQLToPHPType($typeName, $typeKind, $fieldName);
-
-        $isList = in_array(FieldTypeKindEnum::LIST, $typeWrappers);
-        $isObject = in_array($typeKind, [FieldTypeKindEnum::OBJECT, FieldTypeKindEnum::UNION_OBJECT]);
         $isCarbon = ($basePhpType === '\Carbon\Carbon');
 
         // 3. Handle imports
@@ -82,29 +126,60 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
             $this->classFile->addImport($this->generationNamespace . '\\' . $basePhpType);
         }
 
-        // 4. Construct PHPDoc
-        $docReturnType = $docType . ($isList ? '[]' : '');
-
-        // 5. Store info for hydrator
-        $this->fields[$fieldName] = [
+        return [
             'type' => $docType,
+            'docType' => $docType . ($isList ? '[]' : ''),
             'isList' => $isList,
             'isObject' => $isObject,
             'isCarbon' => $isCarbon,
+            'hydrator' => $hydrator,
         ];
+    }
 
-        // 6. Generate the getter method
+    /**
+     * Adds a field as a property and a fully type-hinted getter.
+     *
+     * @param string   $fieldName
+     * @param string   $typeName
+     * @param string   $typeKind
+     * @param array    $typeWrappers
+     * @param string[] $possibleTypes Names of the types a union field can hold
+     */
+    public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes = [])
+    {
+        $this->classFile->addProperty($fieldName);
+
+        // Store info for hydrator
+        $info = $this->resolveField($fieldName, $typeName, $typeKind, $typeWrappers, $possibleTypes);
+        $this->fields[$fieldName] = $info;
+
+        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType']));
+    }
+
+    /**
+     * @param string $fieldName
+     * @param string $docReturnType
+     * @param bool   $withBody False to only declare the getter, as an interface does
+     *
+     * @return string
+     */
+    protected function generateGetter(string $fieldName, string $docReturnType, bool $withBody = true): string
+    {
         $upperCamelField = StringLiteralFormatter::formatUpperCamelCase($fieldName);
         $method = "
 /**
  * @return " . $docReturnType . "
  */
-public function get" . $upperCamelField . "()
+public function get" . $upperCamelField . "()";
+
+        if (!$withBody) {
+            return $method . ';';
+        }
+
+        return $method . "
 {
     return \$this->" . $fieldName . ";
 }";
-
-        $this->classFile->addMethod($method);
     }
 
     private function generateHydrationMethod(): string
@@ -123,10 +198,11 @@ public function get" . $upperCamelField . "()
             $lines[] = "        if (isset(\$data['$fieldName']) && \$data['$fieldName'] !== null) {";
 
             if ($info['isObject']) {
+                $hydrator = $info['hydrator'] ?? $info['type'];
                 if ($info['isList']) {
-                    $lines[] = "            \$instance->$fieldName = array_map(function(\$item) { return " . $info['type'] . "::fromArray(\$item); }, \$data['$fieldName']);";
+                    $lines[] = "            \$instance->$fieldName = array_map(function(\$item) { return " . $hydrator . "::fromArray(\$item); }, \$data['$fieldName']);";
                 } else {
-                    $lines[] = "            \$instance->$fieldName = " . $info['type'] . "::fromArray(\$data['$fieldName']);";
+                    $lines[] = "            \$instance->$fieldName = " . $hydrator . "::fromArray(\$data['$fieldName']);";
                 }
             }
             // --- NEW SECTION ---
@@ -193,6 +269,14 @@ public function get" . $upperCamelField . "()
                     $lines[] = "            \$data['$fieldName'] = array_map(function(\$item) { return \$item->toIso8601String(); }, \$this->$fieldName);";
                 } else {
                     $lines[] = "            \$data['$fieldName'] = \$this->$fieldName" . "->toIso8601String();";
+                }
+            }
+            else if ($info['hydrator'] !== null) {
+                // Keep __typename so the array can be hydrated again
+                if ($info['isList']) {
+                    $lines[] = "            \$data['$fieldName'] = array_map(function(\$item) { return " . $info['hydrator'] . "::toArray(\$item); }, \$this->$fieldName);";
+                } else {
+                    $lines[] = "            \$data['$fieldName'] = " . $info['hydrator'] . "::toArray(\$this->$fieldName);";
                 }
             }
             else if ($info['isObject']) {

@@ -965,6 +965,124 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
     }
 
     /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateInterfaceObject
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateObject
+     */
+    public function testGenerateInterfaceObjectFromRootField()
+    {
+        $idField = [
+            'name' => 'id',
+            'description' => null,
+            'isDeprecated' => false,
+            'deprecationReason' => null,
+            'type' => [
+                'name' => null,
+                'kind' => FieldTypeKindEnum::NON_NULL,
+                'description' => null,
+                'ofType' => [
+                    'name' => 'ID',
+                    'kind' => FieldTypeKindEnum::SCALAR,
+                    'description' => null,
+                    'ofType' => null,
+                ],
+            ],
+            'args' => null,
+        ];
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__schema' => [
+                    'queryType' => [
+                        'name' => 'Query',
+                        'kind' => FieldTypeKindEnum::OBJECT,
+                        'description' => null,
+                        'fields' => [
+                            [
+                                'name' => 'node',
+                                'description' => null,
+                                'isDeprecated' => false,
+                                'deprecationReason' => null,
+                                'type' => [
+                                    'name' => 'Node',
+                                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                                    'description' => null,
+                                    'ofType' => null,
+                                ],
+                                'args' => [
+                                    ['name' => 'id', 'description' => null, 'defaultValue' => null, 'type' => $idField['type']],
+                                ],
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Node',
+                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                    'fields' => [$idField],
+                    'possibleTypes' => [
+                        ['kind' => FieldTypeKindEnum::OBJECT, 'name' => 'Product'],
+                        ['kind' => FieldTypeKindEnum::OBJECT, 'name' => 'Collection'],
+                    ],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Product',
+                    'kind' => FieldTypeKindEnum::OBJECT,
+                    'fields' => [$idField],
+                    'interfaces' => [['name' => 'Node']],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Collection',
+                    'kind' => FieldTypeKindEnum::OBJECT,
+                    'fields' => [$idField],
+                    'interfaces' => [['name' => 'Node']],
+                ]
+            ]
+        ])));
+
+        $this->classGenerator->generateRootQueryObject();
+        $this->assertSame(0, $this->mockHandler->count());
+
+        foreach (['RootQueryObject', 'NodeInterfaceObject', 'Node', 'NodeHydrator'] as $objectName) {
+            $this->assertFileEquals(
+                static::getExpectedFilesDir() . "/interface_objects/$objectName.php",
+                static::getGeneratedFilesDir() . "/$objectName.php"
+            );
+        }
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/RootNodeArgumentsObject.php");
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/ProductQueryObject.php");
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/CollectionQueryObject.php");
+
+        // Result classes of the possible types implement the PHP interface of the GraphQL interface
+        $this->assertStringContainsString('class Product implements Node', file_get_contents(static::getGeneratedFilesDir() . "/Product.php"));
+        $this->assertStringContainsString('class Collection implements Node', file_get_contents(static::getGeneratedFilesDir() . "/Collection.php"));
+        // The generated hydrator picks the result class by __typename and keeps it when converting back to an array
+        foreach (['Node', 'Product', 'Collection', 'NodeHydrator'] as $className) {
+            require_once static::getGeneratedFilesDir() . "/$className.php";
+        }
+        $hydrator = 'GraphQL\\Tests\\SchemaObject\\NodeHydrator';
+        $collection = $hydrator::fromArray(['__typename' => 'Collection', 'id' => 'gid://1']);
+        $this->assertInstanceOf('GraphQL\\Tests\\SchemaObject\\Collection', $collection);
+        $this->assertInstanceOf('GraphQL\\Tests\\SchemaObject\\Node', $collection);
+        $this->assertSame('gid://1', $collection->getId());
+        $this->assertSame(['__typename' => 'Collection', 'id' => 'gid://1'], $hydrator::toArray($collection));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('the data has no __typename');
+        $hydrator::fromArray(['id' => 'gid://1']);
+    }
+
+    /**
      * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateUnionObject
      */
     public function testGenerateUnionObject()
@@ -1023,6 +1141,16 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
 
         $this->classGenerator->generateUnionObject($objectName);
 
+        $this->assertFileEquals(
+            static::getExpectedFilesDir() . "/union_objects/{$objectName}Hydrator.php",
+            static::getGeneratedFilesDir() . "/{$objectName}Hydrator.php"
+        );
+        // Union fields of result classes are typed with the possible types and hydrated by the union's hydrator
+        $unionObject1Result = file_get_contents(static::getGeneratedFilesDir() . "/UnionObject1.php");
+        $this->assertStringContainsString('@return UnionObject1|UnionObject2', $unionObject1Result);
+        $this->assertStringContainsString('UnionTestObjectHydrator::fromArray($data[\'union\'])', $unionObject1Result);
+        $this->assertStringContainsString('UnionTestObjectHydrator::toArray($this->union)', $unionObject1Result);
+
         $objectName .= 'UnionObject';
         $this->assertFileEquals(
             static::getExpectedFilesDir() . "/union_objects/UnionObject1QueryObject.php",
@@ -1036,6 +1164,41 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
             static::getExpectedFilesDir() . "/union_objects/$objectName.php",
             static::getGeneratedFilesDir() . "/$objectName.php"
         );
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateInterfaceObject
+     */
+    public function testInterfaceImplementingInterfaceExtendsIt()
+    {
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Entity',
+                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                    'fields' => [],
+                    'possibleTypes' => [],
+                    'interfaces' => [['name' => 'Resource']],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Resource',
+                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                    'fields' => [],
+                    'possibleTypes' => [],
+                    'interfaces' => [],
+                ]
+            ]
+        ])));
+
+        $this->classGenerator->generateInterfaceObject('Entity');
+        $this->assertSame(0, $this->mockHandler->count());
+
+        $this->assertStringContainsString('interface Entity extends Resource', file_get_contents(static::getGeneratedFilesDir() . "/Entity.php"));
+        $this->assertStringContainsString('interface Resource' . PHP_EOL, file_get_contents(static::getGeneratedFilesDir() . "/Resource.php"));
     }
 
     ///**
@@ -1096,5 +1259,10 @@ class TransparentSchemaClassGenerator extends SchemaClassGenerator
     public function generateUnionObject(string $objectName): bool
     {
         return parent::generateUnionObject($objectName);
+    }
+
+    public function generateInterfaceObject(string $objectName): bool
+    {
+        return parent::generateInterfaceObject($objectName);
     }
 }

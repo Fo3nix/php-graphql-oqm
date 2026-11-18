@@ -117,7 +117,7 @@ trait %3$s
      */
     protected function generateFileContents(): string
     {
-        $className = $this->fileName;
+        $className = $this->generateClassName();
 
         // Generate class headers
         $namespace = $this->generateNamespace();
@@ -132,6 +132,14 @@ trait %3$s
 
         $contents = sprintf(static::FILE_FORMAT, $namespace, $imports, $className, $properties, $methods);
         return $this->normalizeLineEndings($contents);
+    }
+
+    /**
+     * @return string The declared name, including any inheritance clause
+     */
+    protected function generateClassName(): string
+    {
+        return $this->fileName;
     }
 
     /**

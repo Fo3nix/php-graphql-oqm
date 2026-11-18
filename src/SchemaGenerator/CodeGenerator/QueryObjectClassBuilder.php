@@ -15,6 +15,15 @@ use GraphQL\Util\StringLiteralFormatter;
  */
 class QueryObjectClassBuilder extends ObjectClassBuilder
 {
+    /**
+     * Suffix appended to the object name to form the generated class name
+     */
+    protected const CLASS_SUFFIX = 'QueryObject';
+
+    /**
+     * Name of the class in the GraphQL\SchemaObject namespace that the generated class extends
+     */
+    protected const BASE_CLASS = 'QueryObject';
 
     private const BASE_CLASS_METHODS = [
         '__construct',
@@ -25,7 +34,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
         'setVariable',
     ];
 
-    private $classPrefix = '';
+    protected $classPrefix = '';
 
 
     /**
@@ -37,12 +46,12 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      */
     public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $className = $classPrefix . $objectName . 'QueryObject';
+        $className = $classPrefix . $objectName . static::CLASS_SUFFIX;
 
         $this->classPrefix = $classPrefix;
 
         // The root mutation object sends its selection set as a mutation operation
-        $baseClass = $objectName === MutationObject::ROOT_MUTATION_OBJECT_NAME ? 'MutationObject' : 'QueryObject';
+        $baseClass = $objectName === MutationObject::ROOT_MUTATION_OBJECT_NAME ? 'MutationObject' : static::BASE_CLASS;
 
         $this->classFile = new ClassFile($writeDir, $className);
         $this->classFile->setNamespace($namespace);
@@ -110,7 +119,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      */
     protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason)
     {
-        $objectClass = $this->classPrefix . $fieldTypeName . ($fieldTypeKind === FieldTypeKindEnum::UNION_OBJECT ? 'UnionObject' : 'QueryObject');
+        $objectClass = $this->classPrefix . $fieldTypeName . self::getClassSuffixForKind($fieldTypeKind);
         $methodName = $this->buildSelectorMethodName($upperCamelName);
         $method = "public function $methodName({$this->classPrefix}$argsObjectName \$argsObject = null)
 {
@@ -123,6 +132,23 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
     return \$object;
 }";
         $this->classFile->addMethod($method, $isDeprecated, $deprecationReason);
+    }
+
+    /**
+     * @param string $typeKind
+     *
+     * @return string The suffix of the query class generated for a type of the given kind
+     */
+    private static function getClassSuffixForKind(string $typeKind): string
+    {
+        switch ($typeKind) {
+            case FieldTypeKindEnum::UNION_OBJECT:
+                return 'UnionObject';
+            case FieldTypeKindEnum::INTERFACE_OBJECT:
+                return 'InterfaceObject';
+            default:
+                return 'QueryObject';
+        }
     }
 
     private function buildSelectorMethodName(string $upperCamelName): string

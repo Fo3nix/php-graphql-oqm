@@ -7,8 +7,11 @@ use GraphQL\Enumeration\FieldTypeKindEnum;
 use GraphQL\SchemaGenerator\CodeGenerator\ArgumentsObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\EnumObjectBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\InputObjectClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\InterfaceObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ObjectBuilderInterface;
 use GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\ResultHydratorClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\ResultInterfaceBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ResultObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\UnionObjectBuilder;
 use GraphQL\SchemaObject\MutationObject;
@@ -52,6 +55,14 @@ class SchemaClassGenerator
      * @var array
      */
 	private $generatedObjects;
+
+    /**
+     * Names of the possible types of every generated union and interface
+     * Array structure: [$typeName] => string[]
+     *
+     * @var array
+     */
+    private $possibleTypes = [];
 
     /**
      * SchemaClassGenerator constructor.
@@ -177,6 +188,8 @@ class SchemaClassGenerator
                 return $this->generateEnumObject($objectName);
             case FieldTypeKindEnum::UNION_OBJECT:
                 return $this->generateUnionObject($objectName);
+            case FieldTypeKindEnum::INTERFACE_OBJECT:
+                return $this->generateInterfaceObject($objectName);
             default:
                 print "Couldn't generate type $objectName: generating $objectKind kind is not supported yet" . PHP_EOL;
                 return false;
@@ -203,6 +216,11 @@ class SchemaClassGenerator
         $objectBuilder->build();
 
         $resultObjectBuilder = new ResultObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        foreach ($objectArray['interfaces'] ?? [] as $interfaceArray) {
+            if ($this->generateObject($interfaceArray['name'], FieldTypeKindEnum::INTERFACE_OBJECT)) {
+                $resultObjectBuilder->addInterface($interfaceArray['name']);
+            }
+        }
         // You'll create this new method, modeled after appendQueryObjectFields
         $this->appendResultObjectFields($resultObjectBuilder, $objectArray['fields']);
         $resultObjectBuilder->build();
@@ -210,6 +228,10 @@ class SchemaClassGenerator
         return true;
     }
 
+    /**
+     * @param ResultObjectClassBuilder $resultObjectBuilder
+     * @param array                    $fieldsArray
+     */
     private function appendResultObjectFields(ResultObjectClassBuilder $resultObjectBuilder, array $fieldsArray)
     {
         foreach ($fieldsArray as $fieldArray) {
@@ -224,7 +246,7 @@ class SchemaClassGenerator
             }
 
             // Add the field (property + getter) to the result class
-            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers);
+            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers, $this->possibleTypes[$typeName] ?? []);
         }
     }
 
@@ -316,12 +338,58 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getUnionObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new UnionObjectBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'], 'name');
 
         foreach ($objectArray['possibleTypes'] as $possibleType) {
             $this->generateObject($possibleType['name'], $possibleType['kind']);
             $objectBuilder->addPossibleType($possibleType['name']);
+            $hydratorBuilder->addPossibleType($possibleType['name']);
         }
         $objectBuilder->build();
+        $hydratorBuilder->build();
+
+        return true;
+    }
+
+    /**
+     * @param string $objectName
+     *
+     * @return bool
+     */
+    protected function generateInterfaceObject(string $objectName): bool
+    {
+        if (array_key_exists($objectName, $this->generatedObjects)) {
+            return true;
+        }
+
+        $this->generatedObjects[$objectName] = true;
+
+        $objectArray   = $this->schemaInspector->getInterfaceObjectSchema($objectName);
+        $objectName    = $objectArray['name'];
+        $objectBuilder = new InterfaceObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix, $this->classPrefix . $objectName);
+        $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'] ?? [], 'name');
+
+        $this->appendQueryObjectFields($objectBuilder, $objectName, $objectArray['fields'] ?? []);
+        foreach ($objectArray['possibleTypes'] ?? [] as $possibleType) {
+            if ($this->generateObject($possibleType['name'], $possibleType['kind'])) {
+                $objectBuilder->addPossibleType($possibleType['name']);
+                $hydratorBuilder->addPossibleType($possibleType['name']);
+            }
+        }
+        $objectBuilder->build();
+        $hydratorBuilder->build();
+
+        // The PHP interface implemented by the result classes of the possible types
+        $resultInterfaceBuilder = new ResultInterfaceBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        foreach ($objectArray['interfaces'] ?? [] as $interfaceArray) {
+            if ($this->generateObject($interfaceArray['name'], FieldTypeKindEnum::INTERFACE_OBJECT)) {
+                $resultInterfaceBuilder->addInterface($interfaceArray['name']);
+            }
+        }
+        $this->appendResultObjectFields($resultInterfaceBuilder, $objectArray['fields'] ?? []);
+        $resultInterfaceBuilder->build();
 
         return true;
     }

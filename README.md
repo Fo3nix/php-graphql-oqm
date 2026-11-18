@@ -127,6 +127,35 @@ message
 The returned payload can be hydrated with its result object (e.g. `ProductCreatePayload::fromArray(...)`) just like
 query results. Subscriptions are not generated.
 
+### Selecting Interface and Union Fields
+
+Fields that return an interface (e.g. `node(id:)` returning `Node`) or a union return an `InterfaceObject` or
+`UnionObject`. Fields declared on the interface itself are selected directly, fields of a specific type are selected
+through its `on{Type}()` method, which adds an inline fragment. `__typename` is always selected, so you can tell which
+type was returned:
+```php
+$rootObject = new RootQueryObject();
+$node = $rootObject->selectNode((new RootNodeArgumentsObject())->setId('gid://shopify/Product/1'));
+$node->selectId();
+$node->onProduct()->selectTitle();
+$node->onCollection()->selectHandle();
+```
+This produces:
+```
+query {
+node(id: "gid://shopify/Product/1") {
+__typename
+id
+... on Product {
+title
+}
+... on Collection {
+handle
+}
+}
+}
+```
+
 ### Using Result Objects (New Feature)
 
 The new Result Object functionality allows you to convert raw GraphQL query results into strongly-typed PHP objects:
@@ -169,6 +198,26 @@ Benefits of using Result Objects:
 - Automatic handling of date/time fields with Carbon
 - Recursive handling of nested objects
 - Easy conversion between objects and arrays/JSON
+
+#### Interface and union results
+
+Interface and union fields are hydrated into the result class of the type that was actually returned, picked by its
+`__typename` (which the `InterfaceObject` and `UnionObject` always select). Every GraphQL interface also becomes a PHP
+interface that the result classes of its implementations implement, and an interface implementing another interface
+extends it:
+```php
+$shop = Shop::fromArray($results->getData()['shop']);
+$featured = $shop->getFeatured(); // Typed as Node
+if ($featured instanceof Product) {
+    echo $featured->getTitle();
+}
+$pinned = $shop->getPinned(); // A union value: Product|Article
+
+// Hydrate an interface or union value directly
+$node = NodeHydrator::fromArray($results->getData()['node']);
+```
+`asArray()` keeps the `__typename` of interface and union values, so the array can be hydrated again. Hydrating data
+without a `__typename`, or with a type unknown to the generated classes, throws an `InvalidArgumentException`.
 
 ## Notes
 
@@ -259,6 +308,8 @@ following mapping from GraphQL types to SchemaObject types:
 - OBJECT: `QueryObject`
 - INPUT_OBJECT: `InputObject`
 - ENUM: `EnumObject`
+- INTERFACE: `InterfaceObject`
+- UNION: `UnionObject`
 
 Additionally, an `ArgumentsObject` will be generated for the arguments on each field in every object. The arguments
 object naming convention is:
@@ -298,6 +349,13 @@ according to the following rules:
   - Input object arguments: will have an input object setter created for them to set the value with an object of type
     `InputObject`
 
+### The InterfaceObject
+
+For an interface of name {INTERFACE_NAME}, a class with name `{INTERFACE_NAME}InterfaceObject` is created. It has a
+selector for every field declared on the interface (following the same rules as the `QueryObject`), and an
+`on{TYPE_NAME}()` method for every type implementing the interface, which returns that type's `QueryObject` wrapped in
+an inline fragment.
+
 ### The EnumObject
 
 For every enum the object generator encounters while traversing the schema, it will create a corresponding ENUM class
@@ -315,6 +373,13 @@ For every object in the schema, a corresponding Result Object class will be gene
 - `asArray()` method to convert the object back to an array
 - Special handling for date/time fields using Carbon
 - Recursive handling of nested objects
+- `implements` declarations for the PHP interfaces of the GraphQL interfaces it implements
+
+For every GraphQL interface, a PHP interface with the same name declares the getters of the interface's fields, and
+extends the PHP interfaces of the interfaces it implements. For every interface and union, a `{TYPE_NAME}Hydrator` class
+is generated with:
+- `fromArray()` to hydrate the result class matching the `__typename` of the data
+- `toArray()` to convert a hydrated object back to an array, including its `__typename`
 
 ## License
 
