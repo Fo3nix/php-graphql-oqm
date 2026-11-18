@@ -10,6 +10,8 @@ use GraphQL\SchemaGenerator\CodeGenerator\InputObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\InterfaceObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ObjectBuilderInterface;
 use GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\ResultHydratorClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\ResultInterfaceBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ResultObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\UnionObjectBuilder;
 use GraphQL\SchemaObject\MutationObject;
@@ -53,6 +55,14 @@ class SchemaClassGenerator
      * @var array
      */
 	private $generatedObjects;
+
+    /**
+     * Names of the possible types of every generated union and interface
+     * Array structure: [$typeName] => string[]
+     *
+     * @var array
+     */
+    private $possibleTypes = [];
 
     /**
      * SchemaClassGenerator constructor.
@@ -206,6 +216,11 @@ class SchemaClassGenerator
         $objectBuilder->build();
 
         $resultObjectBuilder = new ResultObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        foreach ($objectArray['interfaces'] ?? [] as $interfaceArray) {
+            if ($this->generateObject($interfaceArray['name'], FieldTypeKindEnum::INTERFACE_OBJECT)) {
+                $resultObjectBuilder->addInterface($interfaceArray['name']);
+            }
+        }
         // You'll create this new method, modeled after appendQueryObjectFields
         $this->appendResultObjectFields($resultObjectBuilder, $objectArray['fields']);
         $resultObjectBuilder->build();
@@ -213,6 +228,10 @@ class SchemaClassGenerator
         return true;
     }
 
+    /**
+     * @param ResultObjectClassBuilder $resultObjectBuilder
+     * @param array                    $fieldsArray
+     */
     private function appendResultObjectFields(ResultObjectClassBuilder $resultObjectBuilder, array $fieldsArray)
     {
         foreach ($fieldsArray as $fieldArray) {
@@ -227,7 +246,7 @@ class SchemaClassGenerator
             }
 
             // Add the field (property + getter) to the result class
-            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers);
+            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers, $this->possibleTypes[$typeName] ?? []);
         }
     }
 
@@ -319,12 +338,16 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getUnionObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new UnionObjectBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'], 'name');
 
         foreach ($objectArray['possibleTypes'] as $possibleType) {
             $this->generateObject($possibleType['name'], $possibleType['kind']);
             $objectBuilder->addPossibleType($possibleType['name']);
+            $hydratorBuilder->addPossibleType($possibleType['name']);
         }
         $objectBuilder->build();
+        $hydratorBuilder->build();
 
         return true;
     }
@@ -345,14 +368,23 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getInterfaceObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new InterfaceObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix, $this->classPrefix . $objectName);
+        $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'] ?? [], 'name');
 
         $this->appendQueryObjectFields($objectBuilder, $objectName, $objectArray['fields'] ?? []);
         foreach ($objectArray['possibleTypes'] ?? [] as $possibleType) {
             if ($this->generateObject($possibleType['name'], $possibleType['kind'])) {
                 $objectBuilder->addPossibleType($possibleType['name']);
+                $hydratorBuilder->addPossibleType($possibleType['name']);
             }
         }
         $objectBuilder->build();
+        $hydratorBuilder->build();
+
+        // The PHP interface implemented by the result classes of the possible types
+        $resultInterfaceBuilder = new ResultInterfaceBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $this->appendResultObjectFields($resultInterfaceBuilder, $objectArray['fields'] ?? []);
+        $resultInterfaceBuilder->build();
 
         return true;
     }

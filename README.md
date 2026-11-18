@@ -199,6 +199,24 @@ Benefits of using Result Objects:
 - Recursive handling of nested objects
 - Easy conversion between objects and arrays/JSON
 
+#### Interface and union results
+
+Interface and union fields are hydrated into the result class of the type that was actually returned, picked by its
+`__typename` (which the `InterfaceObject` and `UnionObject` always select). Every GraphQL interface also becomes a PHP
+interface that the result classes of its implementations implement:
+```php
+$shop = Shop::fromArray($results->getData()['shop']);
+$featured = $shop->getFeatured(); // Typed as Node
+if ($featured instanceof Product) {
+    echo $featured->getTitle();
+}
+
+// Hydrate an interface or union value directly
+$node = NodeHydrator::fromArray($results->getData()['node']);
+```
+`asArray()` keeps the `__typename` of interface and union values, so the array can be hydrated again. Hydrating data
+without a `__typename`, or with a type unknown to the generated classes, throws an `InvalidArgumentException`.
+
 ## Notes
 
 A couple of notes about schema objects to make your life easier when using the generating classes:
@@ -353,6 +371,12 @@ For every object in the schema, a corresponding Result Object class will be gene
 - `asArray()` method to convert the object back to an array
 - Special handling for date/time fields using Carbon
 - Recursive handling of nested objects
+- `implements` declarations for the PHP interfaces of the GraphQL interfaces it implements
+
+For every GraphQL interface, a PHP interface with the same name declares the getters of the interface's fields. For
+every interface and union, a `{TYPE_NAME}Hydrator` class is generated with:
+- `fromArray()` to hydrate the result class matching the `__typename` of the data
+- `toArray()` to convert a hydrated object back to an array, including its `__typename`
 
 ## License
 

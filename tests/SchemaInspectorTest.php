@@ -32,6 +32,7 @@ class SchemaInspectorTest extends TestCase
             substr_count($body['query'], 'ofType'),
             'The type sub query must request at least 6 ofType levels to support the 5 wrappers of [[String!]!]!'
         );
+        $this->assertStringContainsString('interfaces', $body['query'], 'Object types must fetch the interfaces they implement');
     }
 
     /**
@@ -87,6 +88,7 @@ class SchemaInspectorTest extends TestCase
 
         $body = json_decode((string) $mockHandler->getLastRequest()->getBody(), true);
         $this->assertStringContainsString('mutationType', $body['query']);
+        $this->assertStringContainsString('interfaces', $body['query']);
     }
 
     /**

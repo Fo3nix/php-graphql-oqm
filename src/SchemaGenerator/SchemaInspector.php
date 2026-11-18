@@ -158,6 +158,9 @@ class SchemaInspector
         " . self::buildTypeSubQuery($depth) . "
       }
     }
+    interfaces {
+      name
+    }
   }
 }";
         });
@@ -377,6 +380,9 @@ class SchemaInspector
       }
       possibleTypes{
         kind
+        name
+      }
+      interfaces{
         name
       }
     }
