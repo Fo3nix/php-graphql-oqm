@@ -816,6 +816,155 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
     }
 
     /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateRootMutationObject
+     */
+    public function testGenerateRootMutationObject()
+    {
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__schema' => [
+                    'mutationType' => [
+                        'name' => 'Mutation',
+                        'kind' => FieldTypeKindEnum::OBJECT,
+                        'description' => null,
+                        'fields' => []
+                    ]
+                ]
+            ]
+        ])));
+        $this->assertTrue($this->classGenerator->generateRootMutationObject());
+
+        $objectName = 'RootMutationQueryObject';
+        $this->assertFileEquals(
+            static::getExpectedFilesDir() . "/query_objects/$objectName.php",
+            static::getGeneratedFilesDir() . "/$objectName.php"
+        );
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateRootMutationObject
+     */
+    public function testGenerateRootMutationObjectWithInputObjectArgument()
+    {
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__schema' => [
+                    'mutationType' => [
+                        'name' => 'Mutation',
+                        'kind' => FieldTypeKindEnum::OBJECT,
+                        'description' => null,
+                        'fields' => [
+                            [
+                                'name' => 'createThing',
+                                'description' => null,
+                                'isDeprecated' => false,
+                                'deprecationReason' => null,
+                                'type' => [
+                                    'name' => 'CreateThingPayload',
+                                    'kind' => FieldTypeKindEnum::OBJECT,
+                                    'description' => null,
+                                    'ofType' => null,
+                                ],
+                                'args' => [
+                                    [
+                                        'name' => 'input',
+                                        'description' => null,
+                                        'defaultValue' => null,
+                                        'type' => [
+                                            'name' => null,
+                                            'kind' => FieldTypeKindEnum::NON_NULL,
+                                            'description' => null,
+                                            'ofType' => [
+                                                'name' => 'ThingInput',
+                                                'kind' => FieldTypeKindEnum::INPUT_OBJECT,
+                                                'description' => null,
+                                                'ofType' => null,
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'CreateThingPayload',
+                    'kind' => FieldTypeKindEnum::OBJECT,
+                    'fields' => [
+                        [
+                            'name' => 'id',
+                            'description' => null,
+                            'isDeprecated' => false,
+                            'deprecationReason' => null,
+                            'type' => [
+                                'name' => 'ID',
+                                'kind' => FieldTypeKindEnum::SCALAR,
+                                'description' => null,
+                                'ofType' => null,
+                            ],
+                            'args' => null,
+                        ],
+                    ],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'ThingInput',
+                    'kind' => FieldTypeKindEnum::INPUT_OBJECT,
+                    'inputFields' => [
+                        [
+                            'name' => 'name',
+                            'description' => null,
+                            'defaultValue' => null,
+                            'type' => [
+                                'name' => 'String',
+                                'kind' => FieldTypeKindEnum::SCALAR,
+                                'description' => null,
+                                'ofType' => null,
+                            ],
+                        ],
+                    ],
+                ]
+            ]
+        ])));
+
+        $this->assertTrue($this->classGenerator->generateRootMutationObject());
+        $this->assertSame(0, $this->mockHandler->count());
+
+        foreach (['RootMutationQueryObject', 'RootMutationCreateThingArgumentsObject'] as $objectName) {
+            $this->assertFileEquals(
+                static::getExpectedFilesDir() . "/mutation_objects/$objectName.php",
+                static::getGeneratedFilesDir() . "/$objectName.php"
+            );
+        }
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/CreateThingPayloadQueryObject.php");
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/ThingInputInputObject.php");
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateRootMutationObject
+     */
+    public function testGenerateRootMutationObjectWithoutMutationType()
+    {
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__schema' => [
+                    'mutationType' => null
+                ]
+            ]
+        ])));
+
+        $this->assertFalse($this->classGenerator->generateRootMutationObject());
+        $this->assertSame(0, $this->mockHandler->count());
+    }
+
+    /**
      * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateUnionObject
      */
     public function testGenerateUnionObject()

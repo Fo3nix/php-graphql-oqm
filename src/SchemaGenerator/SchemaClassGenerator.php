@@ -11,6 +11,7 @@ use GraphQL\SchemaGenerator\CodeGenerator\ObjectBuilderInterface;
 use GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ResultObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\UnionObjectBuilder;
+use GraphQL\SchemaObject\MutationObject;
 use GraphQL\SchemaObject\QueryObject;
 use GraphQL\Util\StringLiteralFormatter;
 use RuntimeException;
@@ -76,20 +77,44 @@ class SchemaClassGenerator
      */
 	public function generateRootQueryObject(): bool
 	{
-	    $objectArray    = $this->schemaInspector->getQueryTypeSchema();
-        $rootObjectName = QueryObject::ROOT_QUERY_OBJECT_NAME;
-        $queryTypeName  = $objectArray['name'];
+        return $this->generateRootObject($this->schemaInspector->getQueryTypeSchema(), QueryObject::ROOT_QUERY_OBJECT_NAME);
+    }
+
+    /**
+     * Generates the root mutation object, if the API exposes a mutation type
+     *
+     * @return bool False when the API does not support mutations
+     */
+    public function generateRootMutationObject(): bool
+    {
+        $objectArray = $this->schemaInspector->getMutationTypeSchema();
+        if ($objectArray === null) {
+            return false;
+        }
+
+        return $this->generateRootObject($objectArray, MutationObject::ROOT_MUTATION_OBJECT_NAME);
+    }
+
+    /**
+     * @param array  $objectArray
+     * @param string $rootObjectName
+     *
+     * @return bool
+     */
+    private function generateRootObject(array $objectArray, string $rootObjectName): bool
+    {
+        $typeName = $objectArray['name'];
         //$rootObjectDescr = $objectArray['description'];
 
-        if (array_key_exists($queryTypeName, $this->generatedObjects)) {
+        if (array_key_exists($typeName, $this->generatedObjects)) {
             return true;
         }
 
-        $this->generatedObjects[$queryTypeName] = true;
+        $this->generatedObjects[$typeName] = true;
 
-        $queryObjectBuilder = new QueryObjectClassBuilder($this->writeDir, $rootObjectName, $this->generationNamespace, $this->classPrefix);
-        $this->appendQueryObjectFields($queryObjectBuilder, $rootObjectName, $objectArray['fields']);
-        $queryObjectBuilder->build();
+        $objectBuilder = new QueryObjectClassBuilder($this->writeDir, $rootObjectName, $this->generationNamespace, $this->classPrefix);
+        $this->appendQueryObjectFields($objectBuilder, $rootObjectName, $objectArray['fields']);
+        $objectBuilder->build();
 
         return true;
     }

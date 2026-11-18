@@ -17,6 +17,9 @@ This fork adds Result Object functionality that allows you to:
 - Automatic handling of date/time fields with Carbon
 - Recursive handling of nested objects
 
+It also generates a `RootMutationQueryObject` from the schema's `mutationType`, so mutations can be built with the same
+selector API as queries.
+
 ## Installation
 
 Run the following command to install the package using composer:
@@ -90,6 +93,39 @@ $results = $client->runQuery($rootObject->getQuery());
 For more on how to use the client class refer to:
 - https://github.com/mghoneimy/php-graphql-client#constructing-the-client
 - https://github.com/mghoneimy/php-graphql-client#running-queries
+
+### Building and Running Mutations
+
+If the API exposes a `mutationType`, the generator also creates a `RootMutationQueryObject`. It works exactly like the
+`RootQueryObject`, but the operation is sent as a `mutation`. Input arguments are set with the generated
+`ArgumentsObject` and `InputObject` classes, and the payload fields are selected like any other query object:
+```php
+$rootMutation = new RootMutationQueryObject();
+$payload = $rootMutation->selectProductCreate(
+    (new RootMutationProductCreateArgumentsObject())
+        ->setInput((new ProductInputInputObject())->setTitle('Hat'))
+);
+$payload->selectProduct()->selectId()->selectTitle();
+$payload->selectUserErrors()->selectMessage();
+
+$results = $client->runQuery($rootMutation->getMutation(), true);
+```
+This produces:
+```
+mutation {
+productCreate(input: {title: "Hat"}) {
+product {
+id
+title
+}
+userErrors {
+message
+}
+}
+}
+```
+The returned payload can be hydrated with its result object (e.g. `ProductCreatePayload::fromArray(...)`) just like
+query results. Subscriptions are not generated.
 
 ### Using Result Objects (New Feature)
 
@@ -215,8 +251,8 @@ A couple of hints on how to keep your query objects more readable:
 ## Schema Objects Generation
 
 After running the generation script, the SchemaInspector will run queries on the GraphQL server to retrieve the API
-schema. After that, the SchemaClassGenerator will traverse the schema from the root queryType recursively, creating
-a class for every object in the schema spec.
+schema. After that, the SchemaClassGenerator will traverse the schema from the root queryType (and mutationType, when
+present) recursively, creating a class for every object in the schema spec.
 
 The SchemaClassGenerator will generate a different schema object depending on the type of object being scanned using the
 following mapping from GraphQL types to SchemaObject types:
@@ -235,6 +271,8 @@ The object generator will start traversing the schema from the root `queryType`,
 it encounters according to the following rules:
 - The `RootQueryObject` is generated for the type corresponding to the `queryType` in the schema declaration, this
   object is the start of all GraphQL queries.
+- The `RootMutationQueryObject` is generated for the `mutationType`, if the schema declares one. It extends
+  `MutationObject`, which sends the selection set as a mutation and adds a `getMutation()` method.
 - For a query object of name {OBJECT_NAME}, a class with name `{OBJECT_NAME}QueryObject` will be created.
 - For each selection field in the selection set of the query object, a corresponding selector method will be created,
   according to the following rules:
