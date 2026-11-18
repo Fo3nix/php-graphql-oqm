@@ -284,7 +284,7 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
      */
     public function testGenerateInputObjectWithListValues()
     {
-        $objectName = 'WithMultipleListValues';
+        $objectName = 'WithRequiredListValues';
         // Add mock responses
         $this->mockHandler->append(new Response(200, [], json_encode([
             'data' => [
@@ -873,6 +873,25 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
         $result = file_get_contents(static::getGeneratedFilesDir() . '/Described.php');
         $this->assertStringContainsString("/**\n * A described object.\n */\nclass Described", $result);
         $this->assertStringContainsString("     * The title.\n     *\n     * @return string\n     */\n    public function getTitle(): ?string", $result);
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateArgumentsObject
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::isRequired
+     */
+    public function testOnlyNonNullArgumentsWithoutDefaultAreRequired()
+    {
+        $nonNullId = ['name' => null, 'kind' => FieldTypeKindEnum::NON_NULL, 'description' => null, 'ofType' => [
+            'name' => 'ID', 'kind' => FieldTypeKindEnum::SCALAR, 'description' => null, 'ofType' => null,
+        ]];
+        $this->classGenerator->generateArgumentsObject('RequiredArgsArgumentsObject', [
+            ['name' => 'id', 'description' => null, 'defaultValue' => null, 'type' => $nonNullId],
+            ['name' => 'first', 'description' => null, 'defaultValue' => '10', 'type' => $nonNullId],
+            ['name' => 'after', 'description' => null, 'defaultValue' => null, 'type' => $nonNullId['ofType']],
+        ]);
+
+        $contents = file_get_contents(static::getGeneratedFilesDir() . '/RequiredArgsArgumentsObject.php');
+        $this->assertStringContainsString('    const REQUIRED = ["id"];', $contents);
     }
 
     /**

@@ -6,6 +6,8 @@ use GraphQL\SchemaObject\ArgumentsObject;
 
 class RootMutationCreateThingArgumentsObject extends ArgumentsObject
 {
+    const REQUIRED = ["input"];
+
     protected $input;
 
     public function setInput(ThingInputInputObject $thingInputInputObject)

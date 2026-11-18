@@ -7,6 +7,8 @@ use GraphQL\RawObject;
 
 class WithEnumValueInputObject extends InputObject
 {
+    const REQUIRED = ["enumVal"];
+
     protected $enumVal;
 
     public function setEnumVal($some)

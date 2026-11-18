@@ -83,6 +83,7 @@ class SchemaInspector
         args{
           name
           description
+          defaultValue
           " . self::buildTypeSubQuery() . "
         }
       }
@@ -126,6 +127,7 @@ class SchemaInspector
         args{
           name
           description
+          defaultValue
           " . self::buildTypeSubQuery() . "
         }
       }
@@ -164,6 +166,7 @@ class SchemaInspector
       args{
         name
         description
+        defaultValue
         " . self::buildTypeSubQuery($depth) . "
       }
     }
@@ -202,6 +205,7 @@ class SchemaInspector
       args{
         name
         description
+        defaultValue
         " . self::buildTypeSubQuery($depth) . "
       }
     }
@@ -238,6 +242,7 @@ class SchemaInspector
     inputFields {
       name
       description
+      defaultValue
       " . self::buildTypeSubQuery($depth) . "
     }
   }
@@ -391,12 +396,14 @@ class SchemaInspector
         args{
           name
           description
+          defaultValue
           " . self::buildTypeSubQuery($depth) . "
         }
       }
       inputFields{
         name
         description
+        defaultValue
         " . self::buildTypeSubQuery($depth) . "
       }
       enumValues{

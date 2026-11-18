@@ -7,6 +7,8 @@ use GraphQL\RawObject;
 
 class WithEnumAndScalarListArgsArgumentsObject extends ArgumentsObject
 {
+    const REQUIRED = ["another_list_property"];
+
     protected $listProperty;
     protected $another_list_property;
 

@@ -12,10 +12,19 @@ use GraphQL\RawObject;
 abstract class ArgumentsObject
 {
     /**
+     * Names of the arguments the schema requires (non-null without a default value)
+     *
+     * @var string[]
+     */
+    protected const REQUIRED = [];
+
+    /**
      * @return array
      */
     public function toArray(): array
     {
+        MissingRequiredValueException::assertSet($this, get_object_vars($this), static::REQUIRED, 'argument');
+
         $argsArray = [];
         foreach ($this as $name => $value) {
             if ($value !== null) {

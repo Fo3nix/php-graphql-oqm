@@ -13,10 +13,19 @@ use GraphQL\Util\StringLiteralFormatter;
 abstract class InputObject
 {
     /**
+     * Names of the fields the schema requires (non-null without a default value)
+     *
+     * @var string[]
+     */
+    protected const REQUIRED = [];
+
+    /**
      * @return string
      */
     public function __toString()
     {
+        MissingRequiredValueException::assertSet($this, get_object_vars($this), static::REQUIRED, 'field');
+
         $objectString = '{';
         $first = true;
 
@@ -79,6 +88,8 @@ abstract class InputObject
      */
     public function toArray(): array
     {
+        MissingRequiredValueException::assertSet($this, get_object_vars($this), static::REQUIRED, 'field');
+
         $array = [];
         foreach ($this as $name => $value) {
             if ($value !== null) {

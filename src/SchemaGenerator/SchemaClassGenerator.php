@@ -164,7 +164,8 @@ class SchemaClassGenerator
                     if ($argsObjectGenerated) {
 
                         // Add sub type as a field to the query object if all generation happened successfully
-                        $queryObjectBuilder->addObjectField($name, $typeName, $typeKind, $argsObjectName, $fieldArray['isDeprecated'], $fieldArray['deprecationReason'], $description);
+                        $argsRequired = !empty(array_filter($fieldArray['args'] ?? [], [self::class, 'isRequired']));
+                        $queryObjectBuilder->addObjectField($name, $typeName, $typeKind, $argsObjectName, $fieldArray['isDeprecated'], $fieldArray['deprecationReason'], $description, $argsRequired);
                     }
                 }
             }
@@ -269,6 +270,7 @@ class SchemaClassGenerator
         $objectBuilder = new InputObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
         $objectBuilder->setDescription($objectArray['description'] ?? null);
 
+        $requiredNames = [];
         foreach ($objectArray['inputFields'] as $inputFieldArray) {
             $name = $inputFieldArray['name'];
             $description = $inputFieldArray['description'] ?? null;
@@ -281,6 +283,9 @@ class SchemaClassGenerator
             }
 
             if ($objectGenerated) {
+                if (self::isRequired($inputFieldArray)) {
+                    $requiredNames[] = $name;
+                }
                 if (in_array(FieldTypeKindEnum::LIST, $typeKindWrappers)) {
                     if ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
                         $objectBuilder->addEnumListValue($name, $description);
@@ -299,6 +304,7 @@ class SchemaClassGenerator
             }
         }
 
+        $objectBuilder->setRequiredValues($requiredNames);
         $objectBuilder->build();
 
         return true;
@@ -421,6 +427,7 @@ class SchemaClassGenerator
 
         $objectBuilder = new ArgumentsObjectClassBuilder($this->writeDir, $argsObjectName, $this->generationNamespace, $this->classPrefix);
 
+        $requiredNames = [];
         foreach ($arguments as $argumentArray) {
             $name = $argumentArray['name'];
             $description = $argumentArray['description'] ?? null;
@@ -433,6 +440,9 @@ class SchemaClassGenerator
             }
 
             if ($objectGenerated) {
+                if (self::isRequired($argumentArray)) {
+                    $requiredNames[] = $name;
+                }
                 if (in_array(FieldTypeKindEnum::LIST, $typeKindWrappers)) {
                     if ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
                         $objectBuilder->addEnumListArgument($name, $description);
@@ -450,9 +460,23 @@ class SchemaClassGenerator
                 }
             }
         }
+        $objectBuilder->setRequiredValues($requiredNames);
         $objectBuilder->build();
 
         return true;
+    }
+
+    /**
+     * An argument or input field is required when it is non-null and has no default value
+     *
+     * @param array $inputValueArray The argument or input field, containing the keys "type" and "defaultValue"
+     *
+     * @return bool
+     */
+    private static function isRequired(array $inputValueArray): bool
+    {
+        return ($inputValueArray['type']['kind'] ?? null) === FieldTypeKindEnum::NON_NULL
+            && ($inputValueArray['defaultValue'] ?? null) === null;
     }
 
     /**

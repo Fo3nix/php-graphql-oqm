@@ -224,6 +224,10 @@ trait %3$s
      */
     protected function serializeParameterValue($value): string
     {
+        if (is_array($value)) {
+            return '[' . implode(', ', array_map([$this, 'serializeParameterValue'], $value)) . ']';
+        }
+
         return StringLiteralFormatter::formatValueForRHS($value);
     }
 

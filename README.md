@@ -129,6 +129,18 @@ message
 The returned payload can be hydrated with its result object (e.g. `ProductCreatePayload::fromArray(...)`) just like
 query results. Subscriptions are not generated.
 
+### Required Arguments
+
+Arguments and input fields the schema requires (non-null without a default value) are checked before the request is
+sent. A field with required arguments makes its arguments object mandatory, so `$rootObject->selectProduct()` without
+one fails right away, and building the query with a required argument or input field left unset throws a
+`MissingRequiredValueException`:
+```php
+$rootObject->selectProduct(new RootProductArgumentsObject());
+// MissingRequiredValueException: RootProductArgumentsObject: missing required argument "id"
+```
+An argument bound to a variable with `useVariable()` counts as set.
+
 ### Using Variables
 
 Instead of writing argument values into the query, declare variables on the root object with `setVariable()`,

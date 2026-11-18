@@ -27,6 +27,18 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     }
 
     /**
+     * Lists the arguments or input fields the schema requires, checked before the request is sent
+     *
+     * @param string[] $names
+     */
+    public function setRequiredValues(array $names)
+    {
+        if (!empty($names)) {
+            $this->classFile->addConstant('REQUIRED', array_values($names));
+        }
+    }
+
+    /**
      * @param string $propertyName
      */
     protected function addProperty($propertyName)

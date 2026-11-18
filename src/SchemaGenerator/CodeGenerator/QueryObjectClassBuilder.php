@@ -86,11 +86,12 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      * @param bool $isDeprecated
      * @param string|null $deprecationReason
      * @param string|null $description
+     * @param bool $argsRequired Whether the field has required arguments, making the arguments object mandatory
      */
-    public function addObjectField(string $fieldName, string $typeName, string $typeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
+    public function addObjectField(string $fieldName, string $typeName, string $typeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null, bool $argsRequired = false)
     {
         $upperCamelCaseProp = StringLiteralFormatter::formatUpperCamelCase($fieldName);
-        $this->addObjectSelector($fieldName, $upperCamelCaseProp, $typeName, $typeKind, $argsObjectName, $isDeprecated, $deprecationReason, $description);
+        $this->addObjectSelector($fieldName, $upperCamelCaseProp, $typeName, $typeKind, $argsObjectName, $isDeprecated, $deprecationReason, $description, $argsRequired);
     }
 
     /**
@@ -121,17 +122,26 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      * @param bool $isDeprecated
      * @param string|null $deprecationReason
      * @param string|null $description
+     * @param bool $argsRequired
      */
-    protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
+    protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null, bool $argsRequired = false)
     {
         $objectClass = $this->classPrefix . $fieldTypeName . self::getClassSuffixForKind($fieldTypeKind);
         $methodName = $this->buildSelectorMethodName($upperCamelName);
-        $method = "public function $methodName(?{$this->classPrefix}$argsObjectName \$argsObject = null)
+        if ($argsRequired) {
+            $method = "public function $methodName({$this->classPrefix}$argsObjectName \$argsObject)
+{
+    \$object = new $objectClass(\"$fieldName\");
+    \$object->appendArguments(\$argsObject->toArray());";
+        } else {
+            $method = "public function $methodName(?{$this->classPrefix}$argsObjectName \$argsObject = null)
 {
     \$object = new $objectClass(\"$fieldName\");
     if (\$argsObject !== null) {
         \$object->appendArguments(\$argsObject->toArray());
-    }
+    }";
+        }
+        $method .= "
     \$this->selectField(\$object);
 
     return \$object;
