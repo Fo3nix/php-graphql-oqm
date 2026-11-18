@@ -69,11 +69,12 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
 
     /**
      * @param string $fieldName
+     * @param string|null $description
      */
-    public function addScalarField(string $fieldName, bool $isDeprecated, ?string $deprecationReason)
+    public function addScalarField(string $fieldName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
     {
         $upperCamelCaseProp = StringLiteralFormatter::formatUpperCamelCase($fieldName);
-        $this->addSimpleSelector($fieldName, $upperCamelCaseProp, $isDeprecated, $deprecationReason);
+        $this->addSimpleSelector($fieldName, $upperCamelCaseProp, $isDeprecated, $deprecationReason, $description);
     }
 
     /**
@@ -83,11 +84,12 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      * @param string $argsObjectName
      * @param bool $isDeprecated
      * @param string|null $deprecationReason
+     * @param string|null $description
      */
-    public function addObjectField(string $fieldName, string $typeName, string $typeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason)
+    public function addObjectField(string $fieldName, string $typeName, string $typeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
     {
         $upperCamelCaseProp = StringLiteralFormatter::formatUpperCamelCase($fieldName);
-        $this->addObjectSelector($fieldName, $upperCamelCaseProp, $typeName, $typeKind, $argsObjectName, $isDeprecated, $deprecationReason);
+        $this->addObjectSelector($fieldName, $upperCamelCaseProp, $typeName, $typeKind, $argsObjectName, $isDeprecated, $deprecationReason, $description);
     }
 
     /**
@@ -95,8 +97,9 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      * @param string $upperCamelName
      * @param bool $isDeprecated
      * @param string|null $deprecationReason
+     * @param string|null $description
      */
-    protected function addSimpleSelector(string $propertyName, string $upperCamelName, bool $isDeprecated, ?string $deprecationReason)
+    protected function addSimpleSelector(string $propertyName, string $upperCamelName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
     {
         $methodName = $this->buildSelectorMethodName($upperCamelName);
         $method = "public function $methodName()
@@ -105,7 +108,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
 
     return \$this;
 }";
-        $this->classFile->addMethod($method, $isDeprecated, $deprecationReason);
+        $this->classFile->addMethod($method, $isDeprecated, $deprecationReason, $description);
     }
 
     /**
@@ -116,8 +119,9 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
      * @param string $argsObjectName
      * @param bool $isDeprecated
      * @param string|null $deprecationReason
+     * @param string|null $description
      */
-    protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason)
+    protected function addObjectSelector(string $fieldName, string $upperCamelName, string $fieldTypeName, string $fieldTypeKind, string $argsObjectName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
     {
         $objectClass = $this->classPrefix . $fieldTypeName . self::getClassSuffixForKind($fieldTypeKind);
         $methodName = $this->buildSelectorMethodName($upperCamelName);
@@ -131,7 +135,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
 
     return \$object;
 }";
-        $this->classFile->addMethod($method, $isDeprecated, $deprecationReason);
+        $this->classFile->addMethod($method, $isDeprecated, $deprecationReason, $description);
     }
 
     /**

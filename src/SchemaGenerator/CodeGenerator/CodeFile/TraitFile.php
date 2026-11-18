@@ -51,6 +51,13 @@ trait %3$s
     protected $methods;
 
     /**
+     * The formatted comment documenting the declared class, trait or interface
+     *
+     * @var string
+     */
+    protected $docComment = '';
+
+    /**
      * TraitFile constructor.
      *
      * @param $writeDir
@@ -101,10 +108,10 @@ trait %3$s
      * @param bool $isDeprecated
      * @param string|null $deprecationReason
      */
-    public function addMethod(string $methodString, bool $isDeprecated = false, ?string $deprecationReason = null)
+    public function addMethod(string $methodString, bool $isDeprecated = false, ?string $deprecationReason = null, ?string $description = null)
     {
         if (!empty($methodString)) {
-            $methodString = $this->prependDeprecationComment($methodString, $isDeprecated, $deprecationReason);
+            $methodString = $this->prependDocComment($methodString, $isDeprecated, $deprecationReason, $description);
 
             // Normalize line endings here to make replacements in generateMethods() work.
             $methodString = $this->normalizeLineEndings($methodString);
@@ -124,6 +131,7 @@ trait %3$s
         if (!empty($namespace)) $namespace = PHP_EOL . $namespace;
         $imports = $this->generateImports();
         if (!empty($imports)) $imports = PHP_EOL . $imports;
+        $imports = $this->appendDocComment($imports);
 
         // Generate class body
         $properties = $this->generateProperties();
@@ -226,16 +234,37 @@ trait %3$s
      *
      * @return string
      */
-    protected function prependDeprecationComment(string $code, bool $isDeprecated, ?string $deprecationReason): string
+    protected function prependDocComment(string $code, bool $isDeprecated, ?string $deprecationReason, ?string $description = null): string
     {
-        if ($isDeprecated) {
-            $code = "/**
- * @deprecated".($deprecationReason ? " $deprecationReason" : "")."
- */
-".$code;
+        $tags = $isDeprecated ? ['@deprecated' . ($deprecationReason ? " $deprecationReason" : '')] : [];
+
+        return DocComment::format($description, $tags) . $code;
+    }
+
+    /**
+     * Sets the comment documenting the class, trait or interface itself
+     *
+     * @param string|null $description
+     */
+    public function setDocComment(?string $description)
+    {
+        $this->docComment = DocComment::format($description);
+    }
+
+    /**
+     * Appends the doc comment of the file's class to its imports, the part of the file right above the declaration
+     *
+     * @param string $imports
+     *
+     * @return string
+     */
+    protected function appendDocComment(string $imports): string
+    {
+        if ($this->docComment === '') {
+            return $imports;
         }
 
-        return $code;
+        return $imports . PHP_EOL . rtrim($this->docComment, PHP_EOL);
     }
 
     protected function normalizeLineEndings(string $code)

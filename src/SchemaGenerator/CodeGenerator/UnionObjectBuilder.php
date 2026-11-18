@@ -58,6 +58,16 @@ class UnionObjectBuilder implements ObjectBuilderInterface
     }
 
     /**
+     * Sets the description of the generated class, documented in its doc comment
+     *
+     * @param string|null $description
+     */
+    public function setDescription(?string $description)
+    {
+        $this->classFile->setDocComment($description);
+    }
+
+    /**
      * @return void
      */
     public function build(): void

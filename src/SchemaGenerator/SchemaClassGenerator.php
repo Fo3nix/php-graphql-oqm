@@ -115,7 +115,6 @@ class SchemaClassGenerator
     private function generateRootObject(array $objectArray, string $rootObjectName): bool
     {
         $typeName = $objectArray['name'];
-        //$rootObjectDescr = $objectArray['description'];
 
         if (array_key_exists($typeName, $this->generatedObjects)) {
             return true;
@@ -124,6 +123,7 @@ class SchemaClassGenerator
         $this->generatedObjects[$typeName] = true;
 
         $objectBuilder = new QueryObjectClassBuilder($this->writeDir, $rootObjectName, $this->generationNamespace, $this->classPrefix);
+        $objectBuilder->setDescription($objectArray['description'] ?? null);
         $this->appendQueryObjectFields($objectBuilder, $rootObjectName, $objectArray['fields']);
         $objectBuilder->build();
 
@@ -144,14 +144,14 @@ class SchemaClassGenerator
             // Skip fields with name "query"
             if ($name === 'query') continue;
 
-            //$description = $fieldArray['description'];
+            $description = $fieldArray['description'] ?? null;
             [$typeName, $typeKind] = $this->getTypeInfo($fieldArray);
 
             if ($typeKind === FieldTypeKindEnum::SCALAR) {
-                $queryObjectBuilder->addScalarField($name, $fieldArray['isDeprecated'], $fieldArray['deprecationReason']);
+                $queryObjectBuilder->addScalarField($name, $fieldArray['isDeprecated'], $fieldArray['deprecationReason'], $description);
             } elseif ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
                 $this->generateEnumObject($typeName);
-                $queryObjectBuilder->addScalarField($name, $fieldArray['isDeprecated'], $fieldArray['deprecationReason']);
+                $queryObjectBuilder->addScalarField($name, $fieldArray['isDeprecated'], $fieldArray['deprecationReason'], $description);
             } else {
 
                 // Generate nested type object if it wasn't generated
@@ -164,7 +164,7 @@ class SchemaClassGenerator
                     if ($argsObjectGenerated) {
 
                         // Add sub type as a field to the query object if all generation happened successfully
-                        $queryObjectBuilder->addObjectField($name, $typeName, $typeKind, $argsObjectName, $fieldArray['isDeprecated'], $fieldArray['deprecationReason']);
+                        $queryObjectBuilder->addObjectField($name, $typeName, $typeKind, $argsObjectName, $fieldArray['isDeprecated'], $fieldArray['deprecationReason'], $description);
                     }
                 }
             }
@@ -211,11 +211,13 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new QueryObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $objectBuilder->setDescription($objectArray['description'] ?? null);
 
         $this->appendQueryObjectFields($objectBuilder, $objectName, $objectArray['fields']);
         $objectBuilder->build();
 
         $resultObjectBuilder = new ResultObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $resultObjectBuilder->setDescription($objectArray['description'] ?? null);
         foreach ($objectArray['interfaces'] ?? [] as $interfaceArray) {
             if ($this->generateObject($interfaceArray['name'], FieldTypeKindEnum::INTERFACE_OBJECT)) {
                 $resultObjectBuilder->addInterface($interfaceArray['name']);
@@ -246,7 +248,7 @@ class SchemaClassGenerator
             }
 
             // Add the field (property + getter) to the result class
-            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers, $this->possibleTypes[$typeName] ?? []);
+            $resultObjectBuilder->addField($name, $typeName, $typeKind, $typeKindWrappers, $this->possibleTypes[$typeName] ?? [], $fieldArray['description'] ?? null);
         }
     }
 
@@ -265,10 +267,11 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getInputObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new InputObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $objectBuilder->setDescription($objectArray['description'] ?? null);
 
         foreach ($objectArray['inputFields'] as $inputFieldArray) {
             $name = $inputFieldArray['name'];
-            //$description = $inputFieldArray['description'];
+            $description = $inputFieldArray['description'] ?? null;
             //$defaultValue = $inputFieldArray['defaultValue'];
             [$typeName, $typeKind, $typeKindWrappers] = $this->getTypeInfo($inputFieldArray);
 
@@ -280,17 +283,17 @@ class SchemaClassGenerator
             if ($objectGenerated) {
                 if (in_array(FieldTypeKindEnum::LIST, $typeKindWrappers)) {
                     if ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
-                        $objectBuilder->addEnumListValue($name);
+                        $objectBuilder->addEnumListValue($name, $description);
                     } else {
-                        $objectBuilder->addListValue($name, $typeName);
+                        $objectBuilder->addListValue($name, $typeName, $description);
                     }
                 } else {
                     if ($typeKind === FieldTypeKindEnum::SCALAR) {
-                        $objectBuilder->addScalarValue($name);
+                        $objectBuilder->addScalarValue($name, $description);
                     } elseif ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
-                        $objectBuilder->addEnumValue($name, $typeName);
+                        $objectBuilder->addEnumValue($name, $typeName, $description);
                     } else {
-                        $objectBuilder->addInputObjectValue($name, $typeName);
+                        $objectBuilder->addInputObjectValue($name, $typeName, $description);
                     }
                 }
             }
@@ -317,11 +320,10 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getEnumObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new EnumObjectBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $objectBuilder->setDescription($objectArray['description'] ?? null);
 
         foreach ($objectArray['enumValues'] as $enumValue) {
-            $name        = $enumValue['name'];
-            //$description = $enumValue['description'];
-            $objectBuilder->addEnumValue($name);
+            $objectBuilder->addEnumValue($enumValue['name'], $enumValue['description'] ?? null);
         }
         $objectBuilder->build();
 
@@ -344,6 +346,7 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getUnionObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new UnionObjectBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $objectBuilder->setDescription($objectArray['description'] ?? null);
         $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
         $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'], 'name');
 
@@ -374,6 +377,7 @@ class SchemaClassGenerator
         $objectArray   = $this->schemaInspector->getInterfaceObjectSchema($objectName);
         $objectName    = $objectArray['name'];
         $objectBuilder = new InterfaceObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $objectBuilder->setDescription($objectArray['description'] ?? null);
         $hydratorBuilder = new ResultHydratorClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix, $this->classPrefix . $objectName);
         $this->possibleTypes[$objectName] = array_column($objectArray['possibleTypes'] ?? [], 'name');
 
@@ -389,6 +393,7 @@ class SchemaClassGenerator
 
         // The PHP interface implemented by the result classes of the possible types
         $resultInterfaceBuilder = new ResultInterfaceBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+        $resultInterfaceBuilder->setDescription($objectArray['description'] ?? null);
         foreach ($objectArray['interfaces'] ?? [] as $interfaceArray) {
             if ($this->generateObject($interfaceArray['name'], FieldTypeKindEnum::INTERFACE_OBJECT)) {
                 $resultInterfaceBuilder->addInterface($interfaceArray['name']);
@@ -418,7 +423,7 @@ class SchemaClassGenerator
 
         foreach ($arguments as $argumentArray) {
             $name = $argumentArray['name'];
-            //$description = $inputFieldArray['description'];
+            $description = $argumentArray['description'] ?? null;
             //$defaultValue = $inputFieldArray['defaultValue'];
             [$typeName, $typeKind, $typeKindWrappers] = $this->getTypeInfo($argumentArray);
 
@@ -430,17 +435,17 @@ class SchemaClassGenerator
             if ($objectGenerated) {
                 if (in_array(FieldTypeKindEnum::LIST, $typeKindWrappers)) {
                     if ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
-                        $objectBuilder->addEnumListArgument($name);
+                        $objectBuilder->addEnumListArgument($name, $description);
                     } else {
-                        $objectBuilder->addListArgument($name, $typeName);
+                        $objectBuilder->addListArgument($name, $typeName, $description);
                     }
                 } else {
                     if ($typeKind === FieldTypeKindEnum::SCALAR) {
-                        $objectBuilder->addScalarArgument($name);
+                        $objectBuilder->addScalarArgument($name, $description);
                     } elseif ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
-                        $objectBuilder->addInputEnumArgument($name, $typeName);
+                        $objectBuilder->addInputEnumArgument($name, $typeName, $description);
                     } else {
-                        $objectBuilder->addInputObjectArgument($name, $typeName);
+                        $objectBuilder->addInputObjectArgument($name, $typeName, $description);
                     }
                 }
             }

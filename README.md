@@ -313,6 +313,9 @@ following mapping from GraphQL types to SchemaObject types:
 - INTERFACE: `InterfaceObject`
 - UNION: `UnionObject`
 
+The descriptions in the schema are added as PHPDoc to the generated classes, selectors, setters, getters and enum
+constants, so they show up in your IDE.
+
 Additionally, an `ArgumentsObject` will be generated for the arguments on each field in every object. The arguments
 object naming convention is:
 

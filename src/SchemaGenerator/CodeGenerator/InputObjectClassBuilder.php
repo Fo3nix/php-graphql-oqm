@@ -37,37 +37,40 @@ class InputObjectClassBuilder extends ObjectClassBuilder
 
     /**
      * @param string $argumentName
+     * @param string|null $description
      */
-    public function addScalarValue(string $argumentName)
+    public function addScalarValue(string $argumentName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addScalarSetter($argumentName, $upperCamelCaseArg);
+        $this->addScalarSetter($argumentName, $upperCamelCaseArg, $description);
     }
 
     /**
      * @param string $argumentName
      * @param string $typeName
+     * @param string|null $description
      */
-    public function addListValue(string $argumentName, string $typeName)
+    public function addListValue(string $argumentName, string $typeName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addListSetter($argumentName, $upperCamelCaseArg, $typeName);
+        $this->addListSetter($argumentName, $upperCamelCaseArg, $typeName, $description);
     }
 
     /**
      * @param string $argumentName
      * @param string $typeName
+     * @param string|null $description
      */
-    public function addInputObjectValue(string $argumentName, string $typeName)
+    public function addInputObjectValue(string $argumentName, string $typeName, ?string $description = null)
     {
         $typeName .= 'InputObject';
         $typeName = $this->classPrefix . $typeName;
 
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addObjectSetter($argumentName, $upperCamelCaseArg, $typeName);
+        $this->addObjectSetter($argumentName, $upperCamelCaseArg, $typeName, $description);
     }
 
     /**
@@ -76,22 +79,24 @@ class InputObjectClassBuilder extends ObjectClassBuilder
     /**
      * @param string $argumentName
      * @param string $typeName
+     * @param string|null $description
      */
-    public function addEnumValue(string $argumentName, string $typeName)
+    public function addEnumValue(string $argumentName, string $typeName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName);
+        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName, $description);
     }
 
     /**
      * @param string $argumentName
+     * @param string|null $description
      */
-    public function addEnumListValue(string $argumentName)
+    public function addEnumListValue(string $argumentName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addEnumListSetter($argumentName, $upperCamelCaseArg);
+        $this->addEnumListSetter($argumentName, $upperCamelCaseArg, $description);
     }
 
     public function build(): void

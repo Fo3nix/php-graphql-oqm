@@ -36,56 +36,61 @@ class ArgumentsObjectClassBuilder extends ObjectClassBuilder
 
     /**
      * @param string $argumentName
+     * @param string|null $description
      */
-    public function addScalarArgument(string $argumentName)
+    public function addScalarArgument(string $argumentName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addScalarSetter($argumentName, $upperCamelCaseArg);
+        $this->addScalarSetter($argumentName, $upperCamelCaseArg, $description);
     }
 
     /**
      * @param string string $argumentName
      * @param string string $typeName
+     * @param string|null $description
      */
-    public function addListArgument(string $argumentName, string $typeName)
+    public function addListArgument(string $argumentName, string $typeName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addListSetter($argumentName, $upperCamelCaseArg, $typeName);
+        $this->addListSetter($argumentName, $upperCamelCaseArg, $typeName, $description);
     }
 
     /**
      * @param string $argumentName
+     * @param string|null $description
      */
-    public function addEnumListArgument(string $argumentName)
+    public function addEnumListArgument(string $argumentName, ?string $description = null)
     {
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addEnumListSetter($argumentName, $upperCamelCaseArg);
-    }
-
-    /**
-     * @param string $argumentName
-     * @param string $typeName
-     */
-    public function addInputEnumArgument(string $argumentName, string $typeName)
-    {
-        $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
-        $this->addProperty($argumentName);
-        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName);
+        $this->addEnumListSetter($argumentName, $upperCamelCaseArg, $description);
     }
 
     /**
      * @param string $argumentName
      * @param string $typeName
+     * @param string|null $description
      */
-    public function addInputObjectArgument(string $argumentName, string $typeName)
+    public function addInputEnumArgument(string $argumentName, string $typeName, ?string $description = null)
+    {
+        $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
+        $this->addProperty($argumentName);
+        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName, $description);
+    }
+
+    /**
+     * @param string $argumentName
+     * @param string $typeName
+     * @param string|null $description
+     */
+    public function addInputObjectArgument(string $argumentName, string $typeName, ?string $description = null)
     {
         $typeName .= 'InputObject';
         $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
         $this->addProperty($argumentName);
-        $this->addObjectSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName);
+        $this->addObjectSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName, $description);
     }
 
     /**
