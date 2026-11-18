@@ -965,6 +965,104 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
     }
 
     /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateInterfaceObject
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateObject
+     */
+    public function testGenerateInterfaceObjectFromRootField()
+    {
+        $idField = [
+            'name' => 'id',
+            'description' => null,
+            'isDeprecated' => false,
+            'deprecationReason' => null,
+            'type' => [
+                'name' => null,
+                'kind' => FieldTypeKindEnum::NON_NULL,
+                'description' => null,
+                'ofType' => [
+                    'name' => 'ID',
+                    'kind' => FieldTypeKindEnum::SCALAR,
+                    'description' => null,
+                    'ofType' => null,
+                ],
+            ],
+            'args' => null,
+        ];
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__schema' => [
+                    'queryType' => [
+                        'name' => 'Query',
+                        'kind' => FieldTypeKindEnum::OBJECT,
+                        'description' => null,
+                        'fields' => [
+                            [
+                                'name' => 'node',
+                                'description' => null,
+                                'isDeprecated' => false,
+                                'deprecationReason' => null,
+                                'type' => [
+                                    'name' => 'Node',
+                                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                                    'description' => null,
+                                    'ofType' => null,
+                                ],
+                                'args' => [
+                                    ['name' => 'id', 'description' => null, 'defaultValue' => null, 'type' => $idField['type']],
+                                ],
+                            ],
+                        ]
+                    ]
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Node',
+                    'kind' => FieldTypeKindEnum::INTERFACE_OBJECT,
+                    'fields' => [$idField],
+                    'possibleTypes' => [
+                        ['kind' => FieldTypeKindEnum::OBJECT, 'name' => 'Product'],
+                        ['kind' => FieldTypeKindEnum::OBJECT, 'name' => 'Collection'],
+                    ],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Product',
+                    'kind' => FieldTypeKindEnum::OBJECT,
+                    'fields' => [$idField],
+                ]
+            ]
+        ])));
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Collection',
+                    'kind' => FieldTypeKindEnum::OBJECT,
+                    'fields' => [$idField],
+                ]
+            ]
+        ])));
+
+        $this->classGenerator->generateRootQueryObject();
+        $this->assertSame(0, $this->mockHandler->count());
+
+        foreach (['RootQueryObject', 'NodeInterfaceObject'] as $objectName) {
+            $this->assertFileEquals(
+                static::getExpectedFilesDir() . "/interface_objects/$objectName.php",
+                static::getGeneratedFilesDir() . "/$objectName.php"
+            );
+        }
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/RootNodeArgumentsObject.php");
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/ProductQueryObject.php");
+        $this->assertFileExists(static::getGeneratedFilesDir() . "/CollectionQueryObject.php");
+    }
+
+    /**
      * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateUnionObject
      */
     public function testGenerateUnionObject()
@@ -1096,5 +1194,10 @@ class TransparentSchemaClassGenerator extends SchemaClassGenerator
     public function generateUnionObject(string $objectName): bool
     {
         return parent::generateUnionObject($objectName);
+    }
+
+    public function generateInterfaceObject(string $objectName): bool
+    {
+        return parent::generateInterfaceObject($objectName);
     }
 }

@@ -25,6 +25,7 @@ class UnionObjectTest extends TestCase
         $this->assertEquals(
             'query {
 union {
+__typename
 ... on Type1 {
 scalar
 }

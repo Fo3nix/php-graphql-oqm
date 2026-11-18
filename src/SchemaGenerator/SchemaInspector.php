@@ -168,6 +168,42 @@ class SchemaInspector
      *
      * @return array
      */
+    public function getInterfaceObjectSchema(string $objectName): array
+    {
+        $type = $this->getPrefetchedType($objectName);
+        if ($type !== null) {
+            return $type;
+        }
+
+        return $this->fetchTypeSchema(function (int $depth) use ($objectName): string {
+            return "{
+  __type(name: \"$objectName\") {
+    name
+    kind
+    fields(includeDeprecated: true){
+      name
+      isDeprecated
+      deprecationReason
+      " . self::buildTypeSubQuery($depth) . "
+      args{
+        name
+        " . self::buildTypeSubQuery($depth) . "
+      }
+    }
+    possibleTypes {
+      kind
+      name
+    }
+  }
+}";
+        });
+    }
+
+    /**
+     * @param string $objectName
+     *
+     * @return array
+     */
     public function getInputObjectSchema(string $objectName): array
     {
         $type = $this->getPrefetchedType($objectName);

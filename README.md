@@ -127,6 +127,35 @@ message
 The returned payload can be hydrated with its result object (e.g. `ProductCreatePayload::fromArray(...)`) just like
 query results. Subscriptions are not generated.
 
+### Selecting Interface and Union Fields
+
+Fields that return an interface (e.g. `node(id:)` returning `Node`) or a union return an `InterfaceObject` or
+`UnionObject`. Fields declared on the interface itself are selected directly, fields of a specific type are selected
+through its `on{Type}()` method, which adds an inline fragment. `__typename` is always selected, so you can tell which
+type was returned:
+```php
+$rootObject = new RootQueryObject();
+$node = $rootObject->selectNode((new RootNodeArgumentsObject())->setId('gid://shopify/Product/1'));
+$node->selectId();
+$node->onProduct()->selectTitle();
+$node->onCollection()->selectHandle();
+```
+This produces:
+```
+query {
+node(id: "gid://shopify/Product/1") {
+__typename
+id
+... on Product {
+title
+}
+... on Collection {
+handle
+}
+}
+}
+```
+
 ### Using Result Objects (New Feature)
 
 The new Result Object functionality allows you to convert raw GraphQL query results into strongly-typed PHP objects:
@@ -259,6 +288,8 @@ following mapping from GraphQL types to SchemaObject types:
 - OBJECT: `QueryObject`
 - INPUT_OBJECT: `InputObject`
 - ENUM: `EnumObject`
+- INTERFACE: `InterfaceObject`
+- UNION: `UnionObject`
 
 Additionally, an `ArgumentsObject` will be generated for the arguments on each field in every object. The arguments
 object naming convention is:
@@ -297,6 +328,13 @@ according to the following rules:
   - List fields: will have a list setter created for them to set the value with an `array`
   - Input object arguments: will have an input object setter created for them to set the value with an object of type
     `InputObject`
+
+### The InterfaceObject
+
+For an interface of name {INTERFACE_NAME}, a class with name `{INTERFACE_NAME}InterfaceObject` is created. It has a
+selector for every field declared on the interface (following the same rules as the `QueryObject`), and an
+`on{TYPE_NAME}()` method for every type implementing the interface, which returns that type's `QueryObject` wrapped in
+an inline fragment.
 
 ### The EnumObject
 

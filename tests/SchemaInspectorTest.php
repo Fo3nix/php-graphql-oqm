@@ -126,6 +126,46 @@ class SchemaInspectorTest extends TestCase
     }
 
     /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getInterfaceObjectSchema
+     */
+    public function testPrefetchedSchemaServesInterfaceType()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler);
+
+        $mockHandler->append($this->createFullSchemaResponse([
+            $this->createType('Root', 'OBJECT'),
+            $this->createType('Node', 'INTERFACE', [
+                'possibleTypes' => [['kind' => 'OBJECT', 'name' => 'Product']],
+            ]),
+        ]));
+
+        $interface = $schemaInspector->getInterfaceObjectSchema('Node');
+        $this->assertSame('Node', $interface['name']);
+        $this->assertSame('Product', $interface['possibleTypes'][0]['name']);
+        $this->assertSame(0, $mockHandler->count());
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getInterfaceObjectSchema
+     */
+    public function testFetchesInterfaceFieldsAndPossibleTypesWhenPrefetchIsDisabled()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler, false);
+
+        $mockHandler->append($this->createTypeResponse($this->createType('Node', 'INTERFACE', [
+            'possibleTypes' => [['kind' => 'OBJECT', 'name' => 'Product']],
+        ])));
+
+        $this->assertSame('Node', $schemaInspector->getInterfaceObjectSchema('Node')['name']);
+
+        $body = json_decode((string) $mockHandler->getLastRequest()->getBody(), true);
+        $this->assertStringContainsString('fields(includeDeprecated: true)', $body['query']);
+        $this->assertStringContainsString('possibleTypes', $body['query']);
+    }
+
+    /**
      * @covers \GraphQL\SchemaGenerator\SchemaInspector::prefetchFullSchema
      * @covers \GraphQL\SchemaGenerator\SchemaInspector::getObjectSchema
      */

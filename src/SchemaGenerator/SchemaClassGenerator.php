@@ -7,6 +7,7 @@ use GraphQL\Enumeration\FieldTypeKindEnum;
 use GraphQL\SchemaGenerator\CodeGenerator\ArgumentsObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\EnumObjectBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\InputObjectClassBuilder;
+use GraphQL\SchemaGenerator\CodeGenerator\InterfaceObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ObjectBuilderInterface;
 use GraphQL\SchemaGenerator\CodeGenerator\QueryObjectClassBuilder;
 use GraphQL\SchemaGenerator\CodeGenerator\ResultObjectClassBuilder;
@@ -177,6 +178,8 @@ class SchemaClassGenerator
                 return $this->generateEnumObject($objectName);
             case FieldTypeKindEnum::UNION_OBJECT:
                 return $this->generateUnionObject($objectName);
+            case FieldTypeKindEnum::INTERFACE_OBJECT:
+                return $this->generateInterfaceObject($objectName);
             default:
                 print "Couldn't generate type $objectName: generating $objectKind kind is not supported yet" . PHP_EOL;
                 return false;
@@ -320,6 +323,34 @@ class SchemaClassGenerator
         foreach ($objectArray['possibleTypes'] as $possibleType) {
             $this->generateObject($possibleType['name'], $possibleType['kind']);
             $objectBuilder->addPossibleType($possibleType['name']);
+        }
+        $objectBuilder->build();
+
+        return true;
+    }
+
+    /**
+     * @param string $objectName
+     *
+     * @return bool
+     */
+    protected function generateInterfaceObject(string $objectName): bool
+    {
+        if (array_key_exists($objectName, $this->generatedObjects)) {
+            return true;
+        }
+
+        $this->generatedObjects[$objectName] = true;
+
+        $objectArray   = $this->schemaInspector->getInterfaceObjectSchema($objectName);
+        $objectName    = $objectArray['name'];
+        $objectBuilder = new InterfaceObjectClassBuilder($this->writeDir, $objectName, $this->generationNamespace, $this->classPrefix);
+
+        $this->appendQueryObjectFields($objectBuilder, $objectName, $objectArray['fields'] ?? []);
+        foreach ($objectArray['possibleTypes'] ?? [] as $possibleType) {
+            if ($this->generateObject($possibleType['name'], $possibleType['kind'])) {
+                $objectBuilder->addPossibleType($possibleType['name']);
+            }
         }
         $objectBuilder->build();
 
