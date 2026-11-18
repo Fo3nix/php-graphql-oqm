@@ -88,7 +88,7 @@ class SimpleRootMutationObject extends MutationObject
 {
     const OBJECT_NAME = '';
 
-    public function selectCreateThing(SimpleRootMutationCreateThingArgumentsObject $argsObject = null)
+    public function selectCreateThing(?SimpleRootMutationCreateThingArgumentsObject $argsObject = null)
     {
         $object = new SimpleThingQueryObject('createThing');
         if ($argsObject !== null) {
@@ -99,7 +99,7 @@ class SimpleRootMutationObject extends MutationObject
         return $object;
     }
 
-    public function selectDeleteThing(SimpleRootMutationCreateThingArgumentsObject $argsObject = null)
+    public function selectDeleteThing(?SimpleRootMutationCreateThingArgumentsObject $argsObject = null)
     {
         $object = new SimpleThingQueryObject('deleteThing');
         if ($argsObject !== null) {

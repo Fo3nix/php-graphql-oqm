@@ -8,7 +8,7 @@ interface Node
     /**
      * @return string
      */
-    public function getId();
+    public function getId(): ?string;
 
     /**
      * Converts this object to an array.

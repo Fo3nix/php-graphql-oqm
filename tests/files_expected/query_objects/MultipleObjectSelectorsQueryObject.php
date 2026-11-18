@@ -8,7 +8,7 @@ class MultipleObjectSelectorsQueryObject extends QueryObject
 {
     const OBJECT_NAME = "MultipleObjectSelectors";
 
-    public function selectRight(MultipleObjectSelectorsRightArgumentsObject $argsObject = null)
+    public function selectRight(?MultipleObjectSelectorsRightArgumentsObject $argsObject = null)
     {
         $object = new MultipleObjectSelectorsRightQueryObject("right");
         if ($argsObject !== null) {
@@ -22,7 +22,7 @@ class MultipleObjectSelectorsQueryObject extends QueryObject
     /**
      * @deprecated
      */
-    public function selectLeftObjects(MultipleObjectSelectorsLeftObjectsArgumentsObject $argsObject = null)
+    public function selectLeftObjects(?MultipleObjectSelectorsLeftObjectsArgumentsObject $argsObject = null)
     {
         $object = new LeftQueryObject("left_objects");
         if ($argsObject !== null) {

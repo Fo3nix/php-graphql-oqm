@@ -121,7 +121,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
     {
         $objectClass = $this->classPrefix . $fieldTypeName . self::getClassSuffixForKind($fieldTypeKind);
         $methodName = $this->buildSelectorMethodName($upperCamelName);
-        $method = "public function $methodName({$this->classPrefix}$argsObjectName \$argsObject = null)
+        $method = "public function $methodName(?{$this->classPrefix}$argsObjectName \$argsObject = null)
 {
     \$object = new $objectClass(\"$fieldName\");
     if (\$argsObject !== null) {

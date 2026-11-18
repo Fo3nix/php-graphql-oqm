@@ -10,7 +10,7 @@ class NodeHydrator
      * @param array $data
      * @return Node
      */
-    public static function fromArray(array $data)
+    public static function fromArray(array $data): Node
     {
         if (!isset($data['__typename'])) {
             throw new \InvalidArgumentException('Cannot hydrate Node: the data has no __typename, select it in the query');
@@ -31,7 +31,7 @@ class NodeHydrator
      * @param Node $object
      * @return array
      */
-    public static function toArray($object): array
+    public static function toArray(Node $object): array
     {
         if ($object instanceof Product) {
             return ['__typename' => 'Product'] + $object->asArray();

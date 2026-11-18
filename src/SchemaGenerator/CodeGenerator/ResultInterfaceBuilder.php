@@ -34,7 +34,7 @@ class ResultInterfaceBuilder extends ResultObjectClassBuilder
     public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes = [])
     {
         $info = $this->resolveField($fieldName, $typeName, $typeKind, $typeWrappers, $possibleTypes);
-        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], false));
+        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], $info['nativeType'], false));
     }
 
     /**

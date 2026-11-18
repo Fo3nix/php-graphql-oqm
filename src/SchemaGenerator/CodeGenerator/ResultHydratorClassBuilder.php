@@ -25,7 +25,7 @@ class ResultHydratorClassBuilder implements ObjectBuilderInterface
     private $typeName;
 
     /**
-     * @var string Doc type of the hydrated objects
+     * @var string|null Type of the hydrated objects
      */
     private $returnType;
 
@@ -41,7 +41,7 @@ class ResultHydratorClassBuilder implements ObjectBuilderInterface
      * @param string      $typeName
      * @param string      $namespace
      * @param string      $classPrefix
-     * @param string|null $returnType Doc type of the hydrated objects, defaults to the union of the possible types
+     * @param string|null $returnType Type of the hydrated objects, defaults to the union of the possible types
      */
     public function __construct(string $writeDir, string $typeName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '', ?string $returnType = null)
     {
@@ -87,7 +87,7 @@ class ResultHydratorClassBuilder implements ObjectBuilderInterface
  * @param array \$data
  * @return $returnType
  */
-public static function fromArray(array \$data)
+public static function fromArray(array \$data): $returnType
 {
     if (!isset(\$data['__typename'])) {
         throw new \\InvalidArgumentException('Cannot hydrate {$this->typeName}: the data has no __typename, select it in the query');
@@ -103,7 +103,7 @@ public static function fromArray(array \$data)
  * @param $returnType \$object
  * @return array
  */
-public static function toArray(\$object): array
+public static function toArray($returnType \$object): array
 {{$instanceChecks}
     throw new \\InvalidArgumentException('Cannot convert ' . get_class(\$object) . ' to an array of {$this->typeName}');
 }");
