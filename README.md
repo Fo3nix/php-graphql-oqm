@@ -378,6 +378,8 @@ it encounters according to the following rules:
     The simple selector will return a reference to the query object being created (this).
   - Object fields will have an object selector created for them, which will create a new query object internally and
     nest it inside the current query. The object selector will return instance of the new query object created.
+  - Selectors and setters declare native return types: `static` for scalar selectors and setters, the nested query
+    object's class for object selectors, so chained calls are typed.
 - For every list of arguments tied to an object field an `ArgumentsObject` will be created with a setter corresponding
   to every argument value according to the following rules:
   - Scalar arguments: will have a simple setter created for them to set the scalar argument value.

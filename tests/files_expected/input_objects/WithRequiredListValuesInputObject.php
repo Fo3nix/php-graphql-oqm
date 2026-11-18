@@ -11,14 +11,14 @@ class WithRequiredListValuesInputObject extends InputObject
     protected $listOne;
     protected $list_two;
 
-    public function setListOne(array $listOne)
+    public function setListOne(array $listOne): static
     {
         $this->listOne = $listOne;
 
         return $this;
     }
 
-    public function setListTwo(array $listTwo)
+    public function setListTwo(array $listTwo): static
     {
         $this->list_two = $listTwo;
 

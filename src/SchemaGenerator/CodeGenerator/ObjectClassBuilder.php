@@ -54,7 +54,7 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     protected function addScalarSetter($propertyName, $upperCamelName, ?string $description = null)
     {
         $lowerCamelName = lcfirst($upperCamelName);
-        $method = "public function set$upperCamelName($$lowerCamelName)
+        $method = "public function set$upperCamelName($$lowerCamelName): static
 {
     \$this->$propertyName = $$lowerCamelName;
 
@@ -72,7 +72,7 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     protected function addListSetter(string $propertyName, string $upperCamelName, string $propertyType, ?string $description = null)
     {
         $lowerCamelName = lcfirst($upperCamelName);
-        $method = "public function set$upperCamelName(array $$lowerCamelName)
+        $method = "public function set$upperCamelName(array $$lowerCamelName): static
 {
     \$this->$propertyName = $$lowerCamelName;
 
@@ -90,7 +90,7 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     protected function addEnumSetter(string $propertyName, string $upperCamelName, string $objectClass, ?string $description = null)
     {
         $lowerCamelName = lcfirst(str_replace('_', '', $objectClass));
-        $method         = "public function set$upperCamelName($$lowerCamelName)
+        $method         = "public function set$upperCamelName($$lowerCamelName): static
 {
     \$this->$propertyName = new RawObject($$lowerCamelName);
 
@@ -110,7 +110,7 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     protected function addEnumListSetter(string $propertyName, string $upperCamelName, ?string $description = null)
     {
         $lowerCamelName = lcfirst($upperCamelName);
-        $method = "public function set$upperCamelName(array $$lowerCamelName)
+        $method = "public function set$upperCamelName(array $$lowerCamelName): static
 {
     \$this->$propertyName = array_map(function (\$value) {
         return new RawObject(\$value);
@@ -131,7 +131,7 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     protected function addObjectSetter(string $propertyName, string $upperCamelName, string $objectClass, ?string $description = null)
     {
         $lowerCamelName = lcfirst(str_replace('_', '', $objectClass));
-        $method         = "public function set$upperCamelName($objectClass $$lowerCamelName)
+        $method         = "public function set$upperCamelName($objectClass $$lowerCamelName): static
 {
     \$this->$propertyName = $$lowerCamelName;
 

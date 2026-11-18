@@ -8,7 +8,7 @@ class WithListValueInputObject extends InputObject
 {
     protected $listOne;
 
-    public function setListOne(array $listOne)
+    public function setListOne(array $listOne): static
     {
         $this->listOne = $listOne;
 

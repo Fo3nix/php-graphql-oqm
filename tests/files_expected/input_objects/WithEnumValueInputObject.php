@@ -11,7 +11,7 @@ class WithEnumValueInputObject extends InputObject
 
     protected $enumVal;
 
-    public function setEnumVal($some)
+    public function setEnumVal($some): static
     {
         $this->enumVal = new RawObject($some);
 

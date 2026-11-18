@@ -8,7 +8,7 @@ class MultipleSimpleSelectorsQueryObject extends QueryObject
 {
     const OBJECT_NAME = "MultipleSimpleSelectors";
 
-    public function selectFirstName()
+    public function selectFirstName(): static
     {
         $this->selectField("first_name");
 
@@ -18,14 +18,14 @@ class MultipleSimpleSelectorsQueryObject extends QueryObject
     /**
      * @deprecated is deprecated
      */
-    public function selectLastName()
+    public function selectLastName(): static
     {
         $this->selectField("last_name");
 
         return $this;
     }
 
-    public function selectGender()
+    public function selectGender(): static
     {
         $this->selectField("gender");
 

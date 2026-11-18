@@ -104,7 +104,7 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
     protected function addSimpleSelector(string $propertyName, string $upperCamelName, bool $isDeprecated, ?string $deprecationReason, ?string $description = null)
     {
         $methodName = $this->buildSelectorMethodName($upperCamelName);
-        $method = "public function $methodName()
+        $method = "public function $methodName(): static
 {
     \$this->selectField(\"$propertyName\");
 
@@ -129,12 +129,12 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
         $objectClass = $this->classPrefix . $fieldTypeName . self::getClassSuffixForKind($fieldTypeKind);
         $methodName = $this->buildSelectorMethodName($upperCamelName);
         if ($argsRequired) {
-            $method = "public function $methodName({$this->classPrefix}$argsObjectName \$argsObject)
+            $method = "public function $methodName({$this->classPrefix}$argsObjectName \$argsObject): $objectClass
 {
     \$object = new $objectClass(\"$fieldName\");
     \$object->appendArguments(\$argsObject->toArray());";
         } else {
-            $method = "public function $methodName(?{$this->classPrefix}$argsObjectName \$argsObject = null)
+            $method = "public function $methodName(?{$this->classPrefix}$argsObjectName \$argsObject = null): $objectClass
 {
     \$object = new $objectClass(\"$fieldName\");
     if (\$argsObject !== null) {

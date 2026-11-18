@@ -10,7 +10,7 @@ class RootMutationCreateThingArgumentsObject extends ArgumentsObject
 
     protected $input;
 
-    public function setInput(ThingInputInputObject $thingInputInputObject)
+    public function setInput(ThingInputInputObject $thingInputInputObject): static
     {
         $this->input = $thingInputInputObject;
 

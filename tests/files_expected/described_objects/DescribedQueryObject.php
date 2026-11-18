@@ -14,7 +14,7 @@ class DescribedQueryObject extends QueryObject
     /**
      * The title.
      */
-    public function selectTitle()
+    public function selectTitle(): static
     {
         $this->selectField("title");
 
@@ -26,7 +26,7 @@ class DescribedQueryObject extends QueryObject
      *
      * @deprecated Use title
      */
-    public function selectOldTitle()
+    public function selectOldTitle(): static
     {
         $this->selectField("old_title");
 

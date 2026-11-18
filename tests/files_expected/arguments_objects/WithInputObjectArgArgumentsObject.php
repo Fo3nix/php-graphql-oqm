@@ -8,7 +8,7 @@ class WithInputObjectArgArgumentsObject extends ArgumentsObject
 {
     protected $objectProperty;
 
-    public function setObjectProperty(SomeInputObject $someInputObject)
+    public function setObjectProperty(SomeInputObject $someInputObject): static
     {
         $this->objectProperty = $someInputObject;
 

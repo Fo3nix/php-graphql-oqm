@@ -8,14 +8,14 @@ class NodeInterfaceObject extends InterfaceObject
 {
     const OBJECT_NAME = "Node";
 
-    public function selectId()
+    public function selectId(): static
     {
         $this->selectField("id");
 
         return $this;
     }
 
-    public function onProduct()
+    public function onProduct(): ProductQueryObject
     {
         $object = new ProductQueryObject();
         $this->addPossibleType($object);
@@ -23,7 +23,7 @@ class NodeInterfaceObject extends InterfaceObject
         return $object;
     }
 
-    public function onCollection()
+    public function onCollection(): CollectionQueryObject
     {
         $object = new CollectionQueryObject();
         $this->addPossibleType($object);

@@ -12,7 +12,7 @@ class WithEnumAndScalarListArgsArgumentsObject extends ArgumentsObject
     protected $listProperty;
     protected $another_list_property;
 
-    public function setListProperty(array $listProperty)
+    public function setListProperty(array $listProperty): static
     {
         $this->listProperty = array_map(function ($value) {
             return new RawObject($value);
@@ -21,7 +21,7 @@ class WithEnumAndScalarListArgsArgumentsObject extends ArgumentsObject
         return $this;
     }
 
-    public function setAnotherListProperty(array $anotherListProperty)
+    public function setAnotherListProperty(array $anotherListProperty): static
     {
         $this->another_list_property = $anotherListProperty;
 

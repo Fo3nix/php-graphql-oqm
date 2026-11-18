@@ -8,7 +8,7 @@ class ObjectSelectorQueryObject extends QueryObject
 {
     const OBJECT_NAME = "ObjectSelector";
 
-    public function selectOthers(?RootOthersArgumentsObject $argsObject = null)
+    public function selectOthers(?RootOthersArgumentsObject $argsObject = null): OtherQueryObject
     {
         $object = new OtherQueryObject("others");
         if ($argsObject !== null) {

@@ -8,7 +8,7 @@ class WithInputObjectValueInputObject extends InputObject
 {
     protected $inputObject;
 
-    public function setInputObject(WithListValueInputObject $withListValueInputObject)
+    public function setInputObject(WithListValueInputObject $withListValueInputObject): static
     {
         $this->inputObject = $withListValueInputObject;
 
