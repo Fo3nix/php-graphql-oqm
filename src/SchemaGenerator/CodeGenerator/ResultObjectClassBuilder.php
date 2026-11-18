@@ -169,9 +169,15 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
             $this->classFile->addImport($this->generationNamespace . '\\' . $basePhpType);
         }
 
+        // Enum values are hydrated as their string value, the enum class lists the possible values
+        $docReturnType = $docType . ($isList ? '[]' : '');
+        if ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
+            $docReturnType = ($isList ? "string[] $basePhpType values" : "string A $basePhpType value");
+        }
+
         return [
             'type' => $docType,
-            'docType' => $docType . ($isList ? '[]' : ''),
+            'docType' => $docReturnType,
             'nativeType' => $isList ? '?array' : $this->mapGraphQLToNativeType($typeName, $typeKind, $docType),
             'isList' => $isList,
             'isObject' => $isObject,

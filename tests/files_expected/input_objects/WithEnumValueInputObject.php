@@ -3,14 +3,15 @@
 namespace GraphQL\Tests\SchemaObject;
 
 use GraphQL\SchemaObject\InputObject;
+use GraphQL\RawObject;
 
 class WithEnumValueInputObject extends InputObject
 {
     protected $enumVal;
 
-    public function setEnumVal($enumVal)
+    public function setEnumVal($some)
     {
-        $this->enumVal = $enumVal;
+        $this->enumVal = new RawObject($some);
 
         return $this;
     }

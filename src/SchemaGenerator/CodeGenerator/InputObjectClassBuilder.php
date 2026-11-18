@@ -73,6 +73,27 @@ class InputObjectClassBuilder extends ObjectClassBuilder
     /**
      * @return void
      */
+    /**
+     * @param string $argumentName
+     * @param string $typeName
+     */
+    public function addEnumValue(string $argumentName, string $typeName)
+    {
+        $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
+        $this->addProperty($argumentName);
+        $this->addEnumSetter($argumentName, $upperCamelCaseArg, $this->classPrefix . $typeName);
+    }
+
+    /**
+     * @param string $argumentName
+     */
+    public function addEnumListValue(string $argumentName)
+    {
+        $upperCamelCaseArg = StringLiteralFormatter::formatUpperCamelCase($argumentName);
+        $this->addProperty($argumentName);
+        $this->addEnumListSetter($argumentName, $upperCamelCaseArg);
+    }
+
     public function build(): void
     {
         $this->classFile->writeFile();

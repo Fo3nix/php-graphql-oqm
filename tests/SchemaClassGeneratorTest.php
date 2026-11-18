@@ -494,7 +494,7 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
      */
     public function testGenerateArgumentsObjectWithListArgs()
     {
-        $objectName = 'WithMultipleListArgsArgumentsObject';
+        $objectName = 'WithEnumAndScalarListArgsArgumentsObject';
         // Add mock responses
         $this->mockHandler->append(new Response(200, [], json_encode([
             'data' => [

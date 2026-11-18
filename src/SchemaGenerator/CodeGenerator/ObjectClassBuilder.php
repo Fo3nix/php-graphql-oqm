@@ -76,6 +76,27 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     }
 
     /**
+     * Enum values are wrapped in RawObjects so they are written unquoted in the query
+     *
+     * @param string $propertyName
+     * @param string $upperCamelName
+     */
+    protected function addEnumListSetter(string $propertyName, string $upperCamelName)
+    {
+        $lowerCamelName = lcfirst($upperCamelName);
+        $method = "public function set$upperCamelName(array $$lowerCamelName)
+{
+    \$this->$propertyName = array_map(function (\$value) {
+        return new RawObject(\$value);
+    }, $$lowerCamelName);
+
+    return \$this;
+}";
+        $this->classFile->addMethod($method);
+        $this->classFile->addImport('GraphQL\\RawObject');
+    }
+
+    /**
      * @param string $propertyName
      * @param string $upperCamelName
      * @param string $objectClass

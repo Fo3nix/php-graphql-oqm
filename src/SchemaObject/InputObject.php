@@ -22,7 +22,8 @@ abstract class InputObject
 
         // TODO: Merge this code block with Query::constructArguments
         foreach ($this as $name => $value) {
-            if (empty($value)) continue;
+            // Only unset values are omitted, false, 0, "" and [] are valid input values
+            if ($value === null) continue;
 
             // Append space at the beginning if it's not the first item on the list
             if ($first) {
