@@ -68,6 +68,64 @@ class SchemaInspectorTest extends TestCase
     }
 
     /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getMutationTypeSchema
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::prefetchFullSchema
+     */
+    public function testPrefetchedSchemaServesMutationType()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler);
+
+        $mockHandler->append($this->createFullSchemaResponse([
+            $this->createType('Root', 'OBJECT'),
+            $this->createType('Mutation', 'OBJECT'),
+        ], 'Root', 'Mutation'));
+
+        $this->assertSame('Root', $schemaInspector->getQueryTypeSchema()['name']);
+        $this->assertSame('Mutation', $schemaInspector->getMutationTypeSchema()['name']);
+        $this->assertSame(0, $mockHandler->count(), 'The mutation type must be served from the single prefetched response');
+
+        $body = json_decode((string) $mockHandler->getLastRequest()->getBody(), true);
+        $this->assertStringContainsString('mutationType', $body['query']);
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getMutationTypeSchema
+     */
+    public function testMutationTypeIsNullWhenSchemaHasNoMutations()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler);
+
+        $mockHandler->append($this->createFullSchemaResponse([
+            $this->createType('Root', 'OBJECT'),
+        ]));
+
+        $this->assertNull($schemaInspector->getMutationTypeSchema());
+        $this->assertSame(0, $mockHandler->count());
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaInspector::getMutationTypeSchema
+     */
+    public function testFetchesMutationTypeDirectlyWhenPrefetchIsDisabled()
+    {
+        $mockHandler = new MockHandler();
+        $schemaInspector = $this->createInspector($mockHandler, false);
+
+        $mockHandler->append(new Response(200, [], json_encode([
+            'data' => ['__schema' => ['mutationType' => $this->createType('Mutation', 'OBJECT')]],
+        ])));
+        $mockHandler->append(new Response(200, [], json_encode([
+            'data' => ['__schema' => ['mutationType' => null]],
+        ])));
+
+        $this->assertSame('Mutation', $schemaInspector->getMutationTypeSchema()['name']);
+        $this->assertNull($schemaInspector->getMutationTypeSchema());
+        $this->assertSame(0, $mockHandler->count());
+    }
+
+    /**
      * @covers \GraphQL\SchemaGenerator\SchemaInspector::prefetchFullSchema
      * @covers \GraphQL\SchemaGenerator\SchemaInspector::getObjectSchema
      */
@@ -165,17 +223,19 @@ class SchemaInspectorTest extends TestCase
     }
 
     /**
-     * @param array  $types
-     * @param string $queryTypeName
+     * @param array       $types
+     * @param string      $queryTypeName
+     * @param string|null $mutationTypeName
      *
      * @return Response
      */
-    private function createFullSchemaResponse(array $types, string $queryTypeName = 'Root'): Response
+    private function createFullSchemaResponse(array $types, string $queryTypeName = 'Root', ?string $mutationTypeName = null): Response
     {
         return new Response(200, [], json_encode([
             'data' => [
                 '__schema' => [
                     'queryType' => ['name' => $queryTypeName],
+                    'mutationType' => $mutationTypeName === null ? null : ['name' => $mutationTypeName],
                     'types' => $types,
                 ],
             ],

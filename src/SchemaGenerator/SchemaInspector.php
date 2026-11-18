@@ -37,6 +37,11 @@ class SchemaInspector
     private $prefetchedQueryType;
 
     /**
+     * @var string|null
+     */
+    private $prefetchedMutationTypeName;
+
+    /**
      * @var bool
      */
     private $prefetchFailed = false;
@@ -84,6 +89,46 @@ class SchemaInspector
         $response = $this->client->runRawQuery($schemaQuery, true);
 
         return $response->getData()['__schema']['queryType'];
+    }
+
+    /**
+     * @return array|null The mutation root type, or null when the API does not support mutations
+     */
+    public function getMutationTypeSchema(): ?array
+    {
+        if ($this->prefetch) {
+            $this->prefetchFullSchema();
+            if ($this->prefetchedTypes !== null) {
+                if ($this->prefetchedMutationTypeName === null) {
+                    return null;
+                }
+                if (isset($this->prefetchedTypes[$this->prefetchedMutationTypeName])) {
+                    return $this->prefetchedTypes[$this->prefetchedMutationTypeName];
+                }
+            }
+        }
+
+        $schemaQuery = "{
+  __schema{
+    mutationType{
+      name
+      kind
+      fields(includeDeprecated: true){
+        name
+        isDeprecated
+        deprecationReason
+        " . self::buildTypeSubQuery() . "
+        args{
+          name
+          " . self::buildTypeSubQuery() . "
+        }
+      }
+    }
+  }
+}";
+        $response = $this->client->runRawQuery($schemaQuery, true);
+
+        return $response->getData()['__schema']['mutationType'] ?? null;
     }
 
     /**
@@ -253,6 +298,7 @@ class SchemaInspector
             $queryTypeName = $schema['queryType']['name'];
             $this->prefetchedTypes = $types;
             $this->prefetchedQueryType = $types[$queryTypeName] ?? null;
+            $this->prefetchedMutationTypeName = $schema['mutationType']['name'] ?? null;
         } catch (\Throwable $throwable) {
             $this->prefetchFailed = true;
         }
@@ -268,6 +314,9 @@ class SchemaInspector
         return "{
   __schema{
     queryType{
+      name
+    }
+    mutationType{
       name
     }
     types{

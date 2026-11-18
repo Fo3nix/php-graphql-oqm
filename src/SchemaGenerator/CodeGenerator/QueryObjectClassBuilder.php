@@ -4,6 +4,7 @@ namespace GraphQL\SchemaGenerator\CodeGenerator;
 
 use GraphQL\Enumeration\FieldTypeKindEnum;
 use GraphQL\SchemaGenerator\CodeGenerator\CodeFile\ClassFile;
+use GraphQL\SchemaObject\MutationObject;
 use GraphQL\SchemaObject\QueryObject;
 use GraphQL\Util\StringLiteralFormatter;
 
@@ -40,15 +41,18 @@ class QueryObjectClassBuilder extends ObjectClassBuilder
 
         $this->classPrefix = $classPrefix;
 
+        // The root mutation object sends its selection set as a mutation operation
+        $baseClass = $objectName === MutationObject::ROOT_MUTATION_OBJECT_NAME ? 'MutationObject' : 'QueryObject';
+
         $this->classFile = new ClassFile($writeDir, $className);
         $this->classFile->setNamespace($namespace);
         if ($namespace !== self::DEFAULT_NAMESPACE) {
-            $this->classFile->addImport('GraphQL\\SchemaObject\\QueryObject');
+            $this->classFile->addImport("GraphQL\\SchemaObject\\$baseClass");
         }
-        $this->classFile->extendsClass('QueryObject');
+        $this->classFile->extendsClass($baseClass);
 
-        // Special case for handling root query object
-        if ($objectName === QueryObject::ROOT_QUERY_OBJECT_NAME) {
+        // Special case for handling root query and mutation objects
+        if ($objectName === QueryObject::ROOT_QUERY_OBJECT_NAME || $objectName === MutationObject::ROOT_MUTATION_OBJECT_NAME) {
             $objectName = '';
         }
         $this->classFile->addConstant('OBJECT_NAME', $objectName);

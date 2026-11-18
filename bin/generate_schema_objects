@@ -68,6 +68,9 @@ print "Generating schema objects from schema types\n";
 print "-------------------------------------------\n";
 
 $scanner->generateRootQueryObject();
+if (!$scanner->generateRootMutationObject()) {
+    print "The API does not expose a mutation type, skipping mutation objects\n";
+}
 
 print "-------------------------------------------\n";
 print "Schema objects generation complete\n";
