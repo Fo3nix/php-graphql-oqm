@@ -13,9 +13,42 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
     private $fields = []; // Stores field info for the hydrator
     protected $classPrefix = '';
 
+    /**
+     * Words PHP reserves as class names (case-insensitive)
+     */
+    private const RESERVED_CLASS_NAMES = [
+        'abstract', 'and', 'array', 'as', 'bool', 'break', 'callable', 'case', 'catch', 'class', 'clone', 'const',
+        'continue', 'declare', 'default', 'do', 'echo', 'else', 'elseif', 'empty', 'enddeclare', 'endfor',
+        'endforeach', 'endif', 'endswitch', 'endwhile', 'enum', 'eval', 'exit', 'extends', 'false', 'final', 'finally',
+        'float', 'fn', 'for', 'foreach', 'function', 'global', 'goto', 'if', 'implements', 'include', 'include_once',
+        'instanceof', 'insteadof', 'int', 'interface', 'isset', 'iterable', 'list', 'match', 'mixed', 'namespace',
+        'never', 'new', 'null', 'object', 'or', 'parent', 'print', 'private', 'protected', 'public', 'readonly',
+        'require', 'require_once', 'return', 'self', 'static', 'string', 'switch', 'throw', 'trait', 'true', 'try',
+        'unset', 'use', 'var', 'void', 'while', 'xor', 'yield',
+    ];
+
+    /**
+     * The name of the result class (or PHP interface) generated for a GraphQL type. Result classes are named like the
+     * type, so a name PHP reserves (e.g. the type "Return") gets a trailing underscore.
+     *
+     * @param string $classPrefix
+     * @param string $typeName
+     *
+     * @return string
+     */
+    public static function className(string $classPrefix, string $typeName): string
+    {
+        $className = $classPrefix . $typeName;
+        if (in_array(strtolower($className), self::RESERVED_CLASS_NAMES, true)) {
+            $className .= '_';
+        }
+
+        return $className;
+    }
+
     public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $this->classFile = new ClassFile($writeDir, $classPrefix.$objectName);
+        $this->classFile = new ClassFile($writeDir, self::className($classPrefix, $objectName));
         $this->classFile->setNamespace($namespace);
         $this->generationNamespace = $namespace;
         $this->classPrefix = $classPrefix;
@@ -49,7 +82,7 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
 
             case FieldTypeKindEnum::OBJECT:
             case FieldTypeKindEnum::INTERFACE_OBJECT:
-                return $this->classPrefix . $typeName; // e.g., "Pokemon"
+                return self::className($this->classPrefix, $typeName); // e.g., "Pokemon"
 
             case FieldTypeKindEnum::ENUM_OBJECT:
                 return $this->classPrefix . $typeName . 'EnumObject';
@@ -98,7 +131,7 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
      */
     public function addInterface(string $interfaceName)
     {
-        $this->classFile->implementsInterface($this->classPrefix . $interfaceName);
+        $this->classFile->implementsInterface(self::className($this->classPrefix, $interfaceName));
     }
 
     /**
@@ -127,7 +160,7 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
         if ($typeKind === FieldTypeKindEnum::UNION_OBJECT) {
             $classPrefix = $this->classPrefix;
             $docType = empty($possibleTypes) ? 'object' : implode('|', array_map(function ($possibleType) use ($classPrefix) {
-                return $classPrefix . $possibleType;
+                return ResultObjectClassBuilder::className($classPrefix, $possibleType);
             }, $possibleTypes));
 
             $docReturnType = $docType;

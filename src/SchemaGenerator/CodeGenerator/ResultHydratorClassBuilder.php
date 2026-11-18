@@ -64,7 +64,7 @@ class ResultHydratorClassBuilder implements ObjectBuilderInterface
     {
         $classPrefix = $this->classPrefix;
         $classNames = array_map(function ($possibleType) use ($classPrefix) {
-            return $classPrefix . $possibleType;
+            return ResultObjectClassBuilder::className($classPrefix, $possibleType);
         }, $this->possibleTypes);
         $returnType = $this->returnType ?? (empty($classNames) ? 'object' : implode('|', $classNames));
 

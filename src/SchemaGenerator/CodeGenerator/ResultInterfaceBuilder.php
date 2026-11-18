@@ -16,7 +16,7 @@ class ResultInterfaceBuilder extends ResultObjectClassBuilder
 {
     public function __construct(string $writeDir, string $objectName, string $namespace = self::DEFAULT_NAMESPACE, string $classPrefix = '')
     {
-        $this->classFile = new InterfaceFile($writeDir, $classPrefix . $objectName);
+        $this->classFile = new InterfaceFile($writeDir, self::className($classPrefix, $objectName));
         $this->classFile->setNamespace($namespace);
         $this->generationNamespace = $namespace;
         $this->classPrefix = $classPrefix;
@@ -45,7 +45,7 @@ class ResultInterfaceBuilder extends ResultObjectClassBuilder
      */
     public function addInterface(string $interfaceName)
     {
-        $this->classFile->extendsInterface($this->classPrefix . $interfaceName);
+        $this->classFile->extendsInterface(self::className($this->classPrefix, $interfaceName));
     }
 
     public function build(): void

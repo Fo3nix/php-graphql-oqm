@@ -448,6 +448,9 @@ For every object in the schema, a corresponding Result Object class will be gene
 - Recursive handling of nested objects
 - `implements` declarations for the PHP interfaces of the GraphQL interfaces it implements
 
+Result classes are named like their type. A type whose name PHP reserves gets a trailing underscore, e.g. the `Return`
+type of the Shopify Admin API becomes the `Return_` class.
+
 For every GraphQL interface, a PHP interface with the same name declares the getters of the interface's fields, and
 extends the PHP interfaces of the interfaces it implements. For every interface and union, a `{TYPE_NAME}Hydrator` class
 is generated with:
