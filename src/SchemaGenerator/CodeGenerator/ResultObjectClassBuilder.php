@@ -4,6 +4,7 @@ namespace GraphQL\SchemaGenerator\CodeGenerator;
 
 use GraphQL\Enumeration\FieldTypeKindEnum;
 use GraphQL\SchemaGenerator\CodeGenerator\CodeFile\ClassFile;
+use GraphQL\SchemaGenerator\CodeGenerator\CodeFile\DocComment;
 use GraphQL\Util\StringLiteralFormatter;
 
 class ResultObjectClassBuilder extends ObjectClassBuilder
@@ -169,9 +170,15 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
             $this->classFile->addImport($this->generationNamespace . '\\' . $basePhpType);
         }
 
+        // Enum values are hydrated as their string value, the enum class lists the possible values
+        $docReturnType = $docType . ($isList ? '[]' : '');
+        if ($typeKind === FieldTypeKindEnum::ENUM_OBJECT) {
+            $docReturnType = ($isList ? "string[] $basePhpType values" : "string A $basePhpType value");
+        }
+
         return [
             'type' => $docType,
-            'docType' => $docType . ($isList ? '[]' : ''),
+            'docType' => $docReturnType,
             'nativeType' => $isList ? '?array' : $this->mapGraphQLToNativeType($typeName, $typeKind, $docType),
             'isList' => $isList,
             'isObject' => $isObject,
@@ -187,9 +194,10 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
      * @param string   $typeName
      * @param string   $typeKind
      * @param array    $typeWrappers
-     * @param string[] $possibleTypes Names of the types a union field can hold
+     * @param string[]    $possibleTypes Names of the types a union field can hold
+     * @param string|null $description
      */
-    public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes = [])
+    public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes = [], ?string $description = null)
     {
         $this->classFile->addProperty($fieldName);
 
@@ -197,7 +205,7 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
         $info = $this->resolveField($fieldName, $typeName, $typeKind, $typeWrappers, $possibleTypes);
         $this->fields[$fieldName] = $info;
 
-        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], $info['nativeType']));
+        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], $info['nativeType'], true, $description));
     }
 
     /**
@@ -205,17 +213,15 @@ class ResultObjectClassBuilder extends ObjectClassBuilder
      * @param string $docReturnType
      * @param string $nativeReturnType
      * @param bool   $withBody False to only declare the getter, as an interface does
+     * @param string|null $description
      *
      * @return string
      */
-    protected function generateGetter(string $fieldName, string $docReturnType, string $nativeReturnType, bool $withBody = true): string
+    protected function generateGetter(string $fieldName, string $docReturnType, string $nativeReturnType, bool $withBody = true, ?string $description = null): string
     {
         $upperCamelField = StringLiteralFormatter::formatUpperCamelCase($fieldName);
         $method = "
-/**
- * @return " . $docReturnType . "
- */
-public function get" . $upperCamelField . "(): " . $nativeReturnType;
+" . DocComment::format($description, ["@return $docReturnType"]) . "public function get" . $upperCamelField . "(): " . $nativeReturnType;
 
         if (!$withBody) {
             return $method . ';';

@@ -17,6 +17,28 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     protected $classFile;
 
     /**
+     * Sets the description of the generated class, documented in its doc comment
+     *
+     * @param string|null $description
+     */
+    public function setDescription(?string $description)
+    {
+        $this->classFile->setDocComment($description);
+    }
+
+    /**
+     * Lists the arguments or input fields the schema requires, checked before the request is sent
+     *
+     * @param string[] $names
+     */
+    public function setRequiredValues(array $names)
+    {
+        if (!empty($names)) {
+            $this->classFile->addConstant('REQUIRED', array_values($names));
+        }
+    }
+
+    /**
      * @param string $propertyName
      */
     protected function addProperty($propertyName)
@@ -27,51 +49,76 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
     /**
      * @param string $propertyName
      * @param string $upperCamelName
+     * @param string|null $description
      */
-    protected function addScalarSetter($propertyName, $upperCamelName)
+    protected function addScalarSetter($propertyName, $upperCamelName, ?string $description = null)
     {
         $lowerCamelName = lcfirst($upperCamelName);
-        $method = "public function set$upperCamelName($$lowerCamelName)
+        $method = "public function set$upperCamelName($$lowerCamelName): static
 {
     \$this->$propertyName = $$lowerCamelName;
 
     return \$this;
 }";
-        $this->classFile->addMethod($method);
+        $this->classFile->addMethod($method, false, null, $description);
     }
 
     /**
      * @param string $propertyName
      * @param string $upperCamelName
      * @param string $propertyType
+     * @param string|null $description
      */
-    protected function addListSetter(string $propertyName, string $upperCamelName, string $propertyType)
+    protected function addListSetter(string $propertyName, string $upperCamelName, string $propertyType, ?string $description = null)
     {
         $lowerCamelName = lcfirst($upperCamelName);
-        $method = "public function set$upperCamelName(array $$lowerCamelName)
+        $method = "public function set$upperCamelName(array $$lowerCamelName): static
 {
     \$this->$propertyName = $$lowerCamelName;
 
     return \$this;
 }";
-        $this->classFile->addMethod($method);
+        $this->classFile->addMethod($method, false, null, $description);
     }
 
     /**
      * @param string $propertyName
      * @param string $upperCamelName
      * @param string $objectClass
+     * @param string|null $description
      */
-    protected function addEnumSetter(string $propertyName, string $upperCamelName, string $objectClass)
+    protected function addEnumSetter(string $propertyName, string $upperCamelName, string $objectClass, ?string $description = null)
     {
         $lowerCamelName = lcfirst(str_replace('_', '', $objectClass));
-        $method         = "public function set$upperCamelName($$lowerCamelName)
+        $method         = "public function set$upperCamelName($$lowerCamelName): static
 {
     \$this->$propertyName = new RawObject($$lowerCamelName);
 
     return \$this;
 }";
-        $this->classFile->addMethod($method);
+        $this->classFile->addMethod($method, false, null, $description);
+        $this->classFile->addImport('GraphQL\\RawObject');
+    }
+
+    /**
+     * Enum values are wrapped in RawObjects so they are written unquoted in the query
+     *
+     * @param string $propertyName
+     * @param string $upperCamelName
+     * @param string|null $description
+     */
+    protected function addEnumListSetter(string $propertyName, string $upperCamelName, ?string $description = null)
+    {
+        $lowerCamelName = lcfirst($upperCamelName);
+        $method = "public function set$upperCamelName(array $$lowerCamelName): static
+{
+    \$this->$propertyName = array_map(function (\$value) {
+        return new RawObject(\$value);
+    }, $$lowerCamelName);
+
+    return \$this;
+}";
+        $this->classFile->addMethod($method, false, null, $description);
         $this->classFile->addImport('GraphQL\\RawObject');
     }
 
@@ -79,16 +126,17 @@ abstract class ObjectClassBuilder implements ObjectBuilderInterface
      * @param string $propertyName
      * @param string $upperCamelName
      * @param string $objectClass
+     * @param string|null $description
      */
-    protected function addObjectSetter(string $propertyName, string $upperCamelName, string $objectClass)
+    protected function addObjectSetter(string $propertyName, string $upperCamelName, string $objectClass, ?string $description = null)
     {
         $lowerCamelName = lcfirst(str_replace('_', '', $objectClass));
-        $method         = "public function set$upperCamelName($objectClass $$lowerCamelName)
+        $method         = "public function set$upperCamelName($objectClass $$lowerCamelName): static
 {
     \$this->$propertyName = $$lowerCamelName;
 
     return \$this;
 }";
-        $this->classFile->addMethod($method);
+        $this->classFile->addMethod($method, false, null, $description);
     }
 }

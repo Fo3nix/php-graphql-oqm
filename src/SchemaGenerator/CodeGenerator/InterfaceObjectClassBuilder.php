@@ -25,7 +25,7 @@ class InterfaceObjectClassBuilder extends QueryObjectClassBuilder
     {
         $upperCamelCaseTypeName = StringLiteralFormatter::formatUpperCamelCase($typeName);
         $objectClassName = $this->classPrefix . $typeName . 'QueryObject';
-        $method = "public function on$upperCamelCaseTypeName()
+        $method = "public function on$upperCamelCaseTypeName(): $objectClassName
 {
     \$object = new $objectClassName();
     \$this->addPossibleType(\$object);

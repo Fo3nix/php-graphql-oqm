@@ -29,6 +29,11 @@ abstract class QueryObject extends AbstractQueryBuilder
     protected const OBJECT_NAME = '';
 
     /**
+     * @var bool
+     */
+    private $typenameSelected = false;
+
+    /**
      * SchemaObject constructor.
      *
      * @param string $fieldName
@@ -40,6 +45,55 @@ abstract class QueryObject extends AbstractQueryBuilder
         $objectName = static::OBJECT_NAME === 'query' ? '' : static::OBJECT_NAME;
         $queryObject = !empty($fieldName) ? $fieldName : $objectName;
         parent::__construct($queryObject);
+    }
+
+    /**
+     * Selects the __typename meta field, the name of the object's type. Selecting it more than once has no effect.
+     *
+     * @return $this
+     */
+    public function selectTypename(): static
+    {
+        if (!$this->typenameSelected) {
+            $this->typenameSelected = true;
+            $this->selectField('__typename');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Names the operation, e.g. "query GetProducts { ... }", which helps logging and debugging on the server. Only has
+     * an effect on the root query or mutation object.
+     *
+     * @param string $operationName
+     *
+     * @return $this
+     */
+    public function setOperationName(string $operationName): static
+    {
+        $this->query->setOperationName($operationName);
+
+        return $this;
+    }
+
+    /**
+     * Declares a variable of the operation, e.g. setVariable('input', 'ProductInput', true) declares
+     * "$input: ProductInput!". Reference it in arguments with useVariable() on the arguments or input object and send
+     * its value with the variables of Client::runQuery(). Only has an effect on the root query or mutation object.
+     *
+     * @param string $name         The variable name, without the leading "$"
+     * @param string $type         The GraphQL type, e.g. "ID", "[ID!]" or "ProductInput"
+     * @param bool   $isRequired   Whether the type is non-null, appending "!"
+     * @param mixed  $defaultValue
+     *
+     * @return $this
+     */
+    public function setVariable(string $name, string $type, bool $isRequired = false, $defaultValue = null): static
+    {
+        parent::setVariable($name, $type, $isRequired, $defaultValue);
+
+        return $this;
     }
 
     /**

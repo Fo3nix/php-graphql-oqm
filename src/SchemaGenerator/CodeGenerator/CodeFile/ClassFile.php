@@ -48,6 +48,13 @@ class %3$s
     protected $constants;
 
     /**
+     * This array is a map that stores the formatted doc comments of constants [constantName] => comment
+     *
+     * @var array
+     */
+    protected $constantDocComments = [];
+
+    /**
      * ClassFile constructor.
      *
      * @param string $writeDir
@@ -95,11 +102,13 @@ class %3$s
     /**
      * @param string          $name
      * @param string|int|bool $value
+     * @param string|null     $description
      */
-    public function addConstant(string $name, $value)
+    public function addConstant(string $name, $value, ?string $description = null)
     {
         if (!empty($name)) {
             $this->constants[$name] = $value;
+            $this->constantDocComments[$name] = DocComment::format($description);
         }
     }
 
@@ -115,6 +124,7 @@ class %3$s
         if (!empty($namespace)) $namespace = PHP_EOL . $namespace;
         $imports = $this->generateImports();
         if (!empty($imports)) $imports = PHP_EOL . $imports;
+        $imports = $this->appendDocComment($imports);
 
         // Generate class body
         $traits = $this->generateTraits();
@@ -188,6 +198,10 @@ class %3$s
         if (!empty($this->constants)) {
             foreach ($this->constants as $name => $value) {
                 $value = $this->serializeParameterValue($value);
+                $docComment = $this->constantDocComments[$name] ?? '';
+                if ($docComment !== '') {
+                    $string .= '    ' . str_replace(PHP_EOL, PHP_EOL . '    ', rtrim($docComment, PHP_EOL)) . PHP_EOL;
+                }
                 $string .= "    const $name = $value;" . PHP_EOL;
             }
         }

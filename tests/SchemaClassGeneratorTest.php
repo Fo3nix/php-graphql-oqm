@@ -284,7 +284,7 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
      */
     public function testGenerateInputObjectWithListValues()
     {
-        $objectName = 'WithMultipleListValues';
+        $objectName = 'WithRequiredListValues';
         // Add mock responses
         $this->mockHandler->append(new Response(200, [], json_encode([
             'data' => [
@@ -494,7 +494,7 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
      */
     public function testGenerateArgumentsObjectWithListArgs()
     {
-        $objectName = 'WithMultipleListArgsArgumentsObject';
+        $objectName = 'WithEnumAndScalarListArgsArgumentsObject';
         // Add mock responses
         $this->mockHandler->append(new Response(200, [], json_encode([
             'data' => [
@@ -813,6 +813,85 @@ class SchemaClassGeneratorTest extends CodeFileTestCase
             static::getExpectedFilesDir() . "/query_objects/$objectName.php",
             static::getGeneratedFilesDir() . "/$objectName.php"
         );
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateEnumObject
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateQueryObject
+     */
+    public function testSchemaDescriptionsAreDocumented()
+    {
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'DescribedStatus',
+                    'kind' => FieldTypeKindEnum::ENUM_OBJECT,
+                    'description' => 'Product status.',
+                    'enumValues' => [
+                        ['name' => 'ACTIVE', 'description' => 'Visible in the shop.'],
+                        ['name' => 'DRAFT', 'description' => null],
+                    ],
+                ]
+            ]
+        ])));
+        $this->classGenerator->generateEnumObject('DescribedStatus');
+        $this->assertFileEquals(
+            static::getExpectedFilesDir() . '/described_objects/DescribedStatusEnumObject.php',
+            static::getGeneratedFilesDir() . '/DescribedStatusEnumObject.php'
+        );
+
+        $scalarField = function (string $name, ?string $description, bool $isDeprecated = false, ?string $deprecationReason = null) {
+            return [
+                'name' => $name,
+                'description' => $description,
+                'isDeprecated' => $isDeprecated,
+                'deprecationReason' => $deprecationReason,
+                'type' => ['name' => 'String', 'kind' => FieldTypeKindEnum::SCALAR, 'description' => null, 'ofType' => null],
+                'args' => null,
+            ];
+        };
+        $this->mockHandler->append(new Response(200, [], json_encode([
+            'data' => [
+                '__type' => [
+                    'name' => 'Described',
+                    'kind' => FieldTypeKindEnum::OBJECT,
+                    'description' => 'A described object.',
+                    'fields' => [
+                        $scalarField('title', 'The title.'),
+                        $scalarField('old_title', 'Old title.', true, 'Use title'),
+                    ],
+                ]
+            ]
+        ])));
+        $this->classGenerator->generateQueryObject('Described');
+        $this->assertFileEquals(
+            static::getExpectedFilesDir() . '/described_objects/DescribedQueryObject.php',
+            static::getGeneratedFilesDir() . '/DescribedQueryObject.php'
+        );
+
+        // The result class documents the type and its fields too
+        $result = file_get_contents(static::getGeneratedFilesDir() . '/Described.php');
+        $this->assertStringContainsString("/**\n * A described object.\n */\nclass Described", $result);
+        $this->assertStringContainsString("     * The title.\n     *\n     * @return string\n     */\n    public function getTitle(): ?string", $result);
+    }
+
+    /**
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::generateArgumentsObject
+     * @covers \GraphQL\SchemaGenerator\SchemaClassGenerator::isRequired
+     */
+    public function testOnlyNonNullArgumentsWithoutDefaultAreRequired()
+    {
+        $nonNullId = ['name' => null, 'kind' => FieldTypeKindEnum::NON_NULL, 'description' => null, 'ofType' => [
+            'name' => 'ID', 'kind' => FieldTypeKindEnum::SCALAR, 'description' => null, 'ofType' => null,
+        ]];
+        $this->classGenerator->generateArgumentsObject('RequiredArgsArgumentsObject', [
+            ['name' => 'id', 'description' => null, 'defaultValue' => null, 'type' => $nonNullId],
+            ['name' => 'first', 'description' => null, 'defaultValue' => '10', 'type' => $nonNullId],
+            ['name' => 'after', 'description' => null, 'defaultValue' => null, 'type' => $nonNullId['ofType']],
+        ]);
+
+        $contents = file_get_contents(static::getGeneratedFilesDir() . '/RequiredArgsArgumentsObject.php');
+        $this->assertStringContainsString('    const REQUIRED = ["id"];', $contents);
     }
 
     /**

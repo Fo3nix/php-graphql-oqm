@@ -72,14 +72,18 @@ class SchemaInspector
   __schema{
     queryType{
       name
+      description
       kind
       fields(includeDeprecated: true){
         name
+        description
         isDeprecated
         deprecationReason
         " . self::buildTypeSubQuery() . "
         args{
           name
+          description
+          defaultValue
           " . self::buildTypeSubQuery() . "
         }
       }
@@ -112,14 +116,18 @@ class SchemaInspector
   __schema{
     mutationType{
       name
+      description
       kind
       fields(includeDeprecated: true){
         name
+        description
         isDeprecated
         deprecationReason
         " . self::buildTypeSubQuery() . "
         args{
           name
+          description
+          defaultValue
           " . self::buildTypeSubQuery() . "
         }
       }
@@ -147,14 +155,18 @@ class SchemaInspector
             return "{
   __type(name: \"$objectName\") {
     name
+    description
     kind
     fields(includeDeprecated: true){
       name
+      description
       isDeprecated
       deprecationReason
       " . self::buildTypeSubQuery($depth) . "
       args{
         name
+        description
+        defaultValue
         " . self::buildTypeSubQuery($depth) . "
       }
     }
@@ -182,14 +194,18 @@ class SchemaInspector
             return "{
   __type(name: \"$objectName\") {
     name
+    description
     kind
     fields(includeDeprecated: true){
       name
+      description
       isDeprecated
       deprecationReason
       " . self::buildTypeSubQuery($depth) . "
       args{
         name
+        description
+        defaultValue
         " . self::buildTypeSubQuery($depth) . "
       }
     }
@@ -221,9 +237,12 @@ class SchemaInspector
             return "{
   __type(name: \"$objectName\") {
     name
+    description
     kind
     inputFields {
       name
+      description
+      defaultValue
       " . self::buildTypeSubQuery($depth) . "
     }
   }
@@ -246,9 +265,11 @@ class SchemaInspector
         $schemaQuery = "{
   __type(name: \"$objectName\") {
     name
+    description
     kind
     enumValues {
       name
+      description
     }
   }
 }";
@@ -272,6 +293,7 @@ class SchemaInspector
         $schemaQuery = "{
   __type(name: \"$objectName\") {
     name
+    description
     kind
     possibleTypes {
       kind
@@ -363,23 +385,30 @@ class SchemaInspector
     }
     types{
       name
+      description
       kind
       fields(includeDeprecated: true){
         name
+        description
         isDeprecated
         deprecationReason
         " . self::buildTypeSubQuery($depth) . "
         args{
           name
+          description
+          defaultValue
           " . self::buildTypeSubQuery($depth) . "
         }
       }
       inputFields{
         name
+        description
+        defaultValue
         " . self::buildTypeSubQuery($depth) . "
       }
       enumValues{
         name
+        description
       }
       possibleTypes{
         kind

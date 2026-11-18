@@ -37,11 +37,22 @@ class EnumObjectBuilder implements ObjectBuilderInterface
 
     /**
      * @param string $valueName
+     * @param string|null $description
      */
-    public function addEnumValue(string $valueName)
+    public function addEnumValue(string $valueName, ?string $description = null)
     {
         $constantName = strtoupper($valueName);
-        $this->classFile->addConstant($constantName, $valueName);
+        $this->classFile->addConstant($constantName, $valueName, $description);
+    }
+
+    /**
+     * Sets the description of the generated class, documented in its doc comment
+     *
+     * @param string|null $description
+     */
+    public function setDescription(?string $description)
+    {
+        $this->classFile->setDocComment($description);
     }
 
     /**

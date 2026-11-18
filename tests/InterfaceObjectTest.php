@@ -30,6 +30,24 @@ __typename
     }
 
     /**
+     * @covers \GraphQL\SchemaObject\AbstractTypeObject::__construct
+     */
+    public function testSelectingTypenameAgainDoesNotDuplicateIt()
+    {
+        $object = new SimpleNodeInterfaceObject('node');
+        $object->selectTypename()->selectId();
+        $this->assertEquals(
+            'query {
+node {
+__typename
+id
+}
+}',
+            (string) $object->getQuery()
+        );
+    }
+
+    /**
      * @covers \GraphQL\SchemaObject\AbstractTypeObject::addPossibleType
      */
     public function testSharedFieldsAndInlineFragments()

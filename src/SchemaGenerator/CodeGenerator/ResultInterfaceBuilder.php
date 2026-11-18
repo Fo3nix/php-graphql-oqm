@@ -29,12 +29,13 @@ class ResultInterfaceBuilder extends ResultObjectClassBuilder
      * @param string   $typeName
      * @param string   $typeKind
      * @param array    $typeWrappers
-     * @param string[] $possibleTypes Names of the types a union field can hold
+     * @param string[]    $possibleTypes Names of the types a union field can hold
+     * @param string|null $description
      */
-    public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes = [])
+    public function addField(string $fieldName, string $typeName, string $typeKind, array $typeWrappers, array $possibleTypes = [], ?string $description = null)
     {
         $info = $this->resolveField($fieldName, $typeName, $typeKind, $typeWrappers, $possibleTypes);
-        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], $info['nativeType'], false));
+        $this->classFile->addMethod($this->generateGetter($fieldName, $info['docType'], $info['nativeType'], false, $description));
     }
 
     /**

@@ -8,7 +8,7 @@ class WithScalarArgArgumentsObject extends ArgumentsObject
 {
     protected $scalarProperty;
 
-    public function setScalarProperty($scalarProperty)
+    public function setScalarProperty($scalarProperty): static
     {
         $this->scalarProperty = $scalarProperty;
 

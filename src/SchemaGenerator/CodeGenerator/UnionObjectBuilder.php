@@ -47,7 +47,7 @@ class UnionObjectBuilder implements ObjectBuilderInterface
         $typeName = $this->classPrefix . $typeName;
         $upperCamelCaseTypeName = StringLiteralFormatter::formatUpperCamelCase($typeName);
         $objectClassName = $typeName . 'QueryObject';
-        $method = "public function on$upperCamelCaseTypeName()
+        $method = "public function on$upperCamelCaseTypeName(): $objectClassName
 {
     \$object = new $objectClassName();
     \$this->addPossibleType(\$object);
@@ -55,6 +55,16 @@ class UnionObjectBuilder implements ObjectBuilderInterface
     return \$object;
 }";
         $this->classFile->addMethod($method);
+    }
+
+    /**
+     * Sets the description of the generated class, documented in its doc comment
+     *
+     * @param string|null $description
+     */
+    public function setDescription(?string $description)
+    {
+        $this->classFile->setDocComment($description);
     }
 
     /**

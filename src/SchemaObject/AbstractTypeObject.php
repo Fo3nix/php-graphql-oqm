@@ -22,7 +22,7 @@ abstract class AbstractTypeObject extends QueryObject
     public function __construct(string $fieldName = '')
     {
         parent::__construct($fieldName);
-        $this->selectField('__typename');
+        $this->selectTypename();
     }
 
     /**
