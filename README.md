@@ -1,5 +1,5 @@
 # PHP GraphQL OQM
-> Forked from [mghoneimy/php-graphql-oqm](https://github.com/mghoneimy/php-graphql-oqm) with added Result Object functionality.
+> Forked from [mghoneimy/php-graphql-oqm](https://github.com/mghoneimy/php-graphql-oqm) with typed result objects, mutations, interfaces, variables and more.
 
 This package utilizes the introspection feature of GraphQL APIs to generate a set of classes that map to the structure
 of the API schema. The generated classes can then be used in a very simple and intuitive way to query the API server.
@@ -8,17 +8,15 @@ Interacting with GraphQL API's using PHP has never been easier!
 
 ## New Features in This Fork
 
-This fork adds Result Object functionality that allows you to:
-
-- Generate strongly-typed result objects from GraphQL schema
-- Hydrate these objects from API response arrays using `fromArray()` method
-- Hydrate objects from JSON strings using `fromJson()` method
-- Convert objects back to arrays using `asArray()` method
-- Automatic handling of date/time fields with Carbon
-- Recursive handling of nested objects
-
-It also generates a `RootMutationQueryObject` from the schema's `mutationType`, so mutations can be built with the same
-selector API as queries.
+- **Result objects**: strongly-typed classes with native return types, hydrated from API responses with `fromArray()`
+  or `fromJson()` and converted back with `asArray()`, with date/time fields as Carbon instances
+- **Mutations**: a `RootMutationQueryObject` generated from the schema's `mutationType`, built with the same selector
+  API as queries
+- **Interfaces and unions**: `on{Type}()` inline fragment selectors, PHP interfaces for GraphQL interfaces, and
+  hydration into the concrete result class by `__typename`
+- **Variables**: declare variables on the root object and send typed input objects as their values
+- **Required arguments**: arguments and input fields the schema requires are checked before the request is sent
+- **Schema descriptions** as PHPDoc on the generated code, and **operation names** and `__typename` selection
 
 ## Installation
 
@@ -48,7 +46,8 @@ php vendor/bin/generate_schema_objects \
     -h "Authorization" \
     -v "Bearer 123" \
     -d "customClassesWritingDirectory" \
-    -n "Vendor\Custom\Namespace"
+    -n "Vendor\Custom\Namespace" \
+    -p "Prefix"
 ```
 
 or if you prefer long arguments
@@ -59,8 +58,12 @@ php vendor/bin/generate_schema_objects \
     --authorization-header-name "Authorization" \
     --authorization-header-value "Bearer 123" \
     --directory "customClassesWritingDirectory" \
-    --namespace "Vendor\Custom\Namespace"
+    --namespace "Vendor\Custom\Namespace" \
+    --prefix "Prefix"
 ```
+
+The optional prefix is prepended to every generated class name, e.g. `PrefixRootQueryObject`, to avoid clashes when
+generating classes for several APIs into one namespace.
 
 ## Usage
 
@@ -95,6 +98,9 @@ $results = $client->runQuery($rootObject->getQuery());
 For more on how to use the client class refer to:
 - https://github.com/mghoneimy/php-graphql-client#constructing-the-client
 - https://github.com/mghoneimy/php-graphql-client#running-queries
+
+(This package uses the [pavel-paliy/php-graphql-client](https://github.com/PavelPaliy/php-graphql-client) fork of that
+client, which has the same API.)
 
 ### Building and Running Mutations
 
@@ -160,6 +166,16 @@ $results = $client->runQuery($rootMutation->getMutation(), true, ['input' => $in
 This sends `mutation CreateProduct($input: ProductInput!) { productCreate(input: $input) { product { id } } }` with
 the variables `{"input": {"title": "Hat", "status": "ACTIVE"}}`. `useVariable('id', 'productId')` references a
 variable with a different name than the argument.
+
+### Operation Names and __typename
+
+Name an operation with `setOperationName()` on the root object, and select the `__typename` meta field of any object
+with `selectTypename()`:
+```php
+$rootObject = (new RootQueryObject())->setOperationName('GetShop');
+$rootObject->selectShop()->selectTypename()->selectName();
+// query GetShop { shop { __typename name } }
+```
 
 ### Selecting Interface and Union Fields
 
@@ -259,7 +275,7 @@ A couple of notes about schema objects to make your life easier when using the g
 
 ### Dealing With Object Selectors
 
-Whilst scalar field setters return an instance of the current query object, object field selectors return objects of
+Whilst scalar field selectors return an instance of the current query object, object field selectors return objects of
 the nested query object. This means that setting the `$rootObject` reference to the result returned by an object
 selector means that the root query object reference is gone.
 
@@ -271,7 +287,7 @@ This way you end up with reference to the `PokemonAttackQueryObject`, and the re
 
 Do:
 ```php
-$rootObjet = new RootQueryObject();
+$rootObject = new RootQueryObject();
 $rootObject->selectAttacks()->selectSpecial()->selectName();
 ```
 This way you can keep track of the `RootQueryObject` reference and develop your query safely.
@@ -323,16 +339,6 @@ same object) the best way to do it is to structure the query like a tree, where 
 reference to the object being branch off from. In this case, charmander is the root and evolutions and evolution
 requirements are 2 sub-trees branched off it.
 
-### Operation Names and __typename
-
-Name an operation with `setOperationName()` on the root object, and select the `__typename` meta field of any object
-with `selectTypename()`:
-```php
-$rootObject = (new RootQueryObject())->setOperationName('GetProduct');
-$rootObject->selectProduct()->selectTypename()->selectTitle();
-// query GetProduct { product { __typename title } }
-```
-
 ### Improving Query Objects Readability
 
 A couple of hints on how to keep your query objects more readable:
@@ -380,12 +386,16 @@ it encounters according to the following rules:
     nest it inside the current query. The object selector will return instance of the new query object created.
   - Selectors and setters declare native return types: `static` for scalar selectors and setters, the nested query
     object's class for object selectors, so chained calls are typed.
+  - A field with required arguments takes a mandatory arguments object, otherwise it is optional.
 - For every list of arguments tied to an object field an `ArgumentsObject` will be created with a setter corresponding
   to every argument value according to the following rules:
   - Scalar arguments: will have a simple setter created for them to set the scalar argument value.
   - List arguments: will have a list setter created for them to set the argument value with an `array`
+  - Enum arguments and lists of enums: will have a setter that writes the values unquoted, as GraphQL enum literals
   - Input object arguments: will have an input object setter created for them to set the argument value with an object
     of type `InputObject`
+  - Required arguments are listed in the `REQUIRED` constant and checked when the query is built
+  - `useVariable()` binds an argument to a variable of the operation
 
 ### The InputObject
 
@@ -395,8 +405,13 @@ according to the following rules:
 - For each field in the input object declaration, a setter will be created according to the following rules:
   - Scalar fields: will have a simple setter created for them to set the scalar value.
   - List fields: will have a list setter created for them to set the value with an `array`
+  - Enum fields and lists of enums: will have a setter that writes the values unquoted, as GraphQL enum literals
   - Input object arguments: will have an input object setter created for them to set the value with an object of type
     `InputObject`
+  - Required fields are listed in the `REQUIRED` constant and checked when the input is serialized
+- Fields left unset (`null`) are omitted, while `false`, `0`, `""` and `[]` are sent
+- `useVariable()` binds a field to a variable of the operation, and `toArray()` converts the input to the value to send
+  as a variable
 
 ### The InterfaceObject
 
@@ -405,12 +420,18 @@ selector for every field declared on the interface (following the same rules as 
 `on{TYPE_NAME}()` method for every type implementing the interface, which returns that type's `QueryObject` wrapped in
 an inline fragment.
 
+### The UnionObject
+
+For a union of name {UNION_NAME}, a class with name `{UNION_NAME}UnionObject` is created, with an `on{TYPE_NAME}()`
+method for every member type, which returns that type's `QueryObject` wrapped in an inline fragment.
+
 ### The EnumObject
 
 For every enum the object generator encounters while traversing the schema, it will create a corresponding ENUM class
 according to the following rules:
 - For an enum object of name {OBJECT_NAME}, a class with name `{OBJECT_NAME}EnumObject` will be created
-- For each EnumValue in the ENUM declaration, a const will be created to hold its value in the class
+- For each EnumValue in the ENUM declaration, a const will be created to hold its value in the class, e.g.
+  `ProductStatusEnumObject::ACTIVE`. Pass these values to the setters of arguments and input objects
 
 ### The ResultObject (New Feature)
 
